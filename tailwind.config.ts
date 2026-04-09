@@ -1,0 +1,96 @@
+import type { Config } from "tailwindcss";
+
+const config: Config = {
+  content: [
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        earth: {
+          50: 'var(--color-earth-50)',
+          100: 'var(--color-earth-100)',
+          200: 'var(--color-earth-200)',
+          300: 'var(--color-earth-300)',
+          400: 'var(--color-earth-400)',
+          500: 'var(--color-earth-500)',
+          600: 'var(--color-earth-600)',
+          700: 'var(--color-earth-700)',
+          800: 'var(--color-earth-800)',
+          900: 'var(--color-earth-900)',
+        },
+        sage: {
+          50: 'var(--color-sage-50)',
+          100: 'var(--color-sage-100)',
+          200: 'var(--color-sage-200)',
+          300: 'var(--color-sage-300)',
+          400: 'var(--color-sage-400)',
+          500: 'var(--color-sage-500)',
+          600: 'var(--color-sage-600)',
+          700: 'var(--color-sage-700)',
+          800: 'var(--color-sage-800)',
+          900: 'var(--color-sage-900)',
+        },
+        terracotta: {
+          50: 'var(--color-terracotta-50)',
+          100: 'var(--color-terracotta-100)',
+          200: 'var(--color-terracotta-200)',
+          300: 'var(--color-terracotta-300)',
+          400: 'var(--color-terracotta-400)',
+          500: 'var(--color-terracotta-500)',
+          600: 'var(--color-terracotta-600)',
+          700: 'var(--color-terracotta-700)',
+          800: 'var(--color-terracotta-800)',
+          900: 'var(--color-terracotta-900)',
+        },
+        primary: {
+          50: 'var(--color-sage-50)',
+          100: 'var(--color-sage-100)',
+          200: 'var(--color-sage-200)',
+          300: 'var(--color-sage-300)',
+          400: 'var(--color-sage-400)',
+          500: 'var(--color-sage-500)',
+          600: 'var(--color-sage-600)',
+          700: 'var(--color-sage-700)',
+          800: 'var(--color-sage-800)',
+          900: 'var(--color-sage-900)',
+          950: '#0f120e',
+        },
+        neutral: {
+          50: 'var(--color-earth-50)',
+          100: 'var(--color-earth-100)',
+          200: 'var(--color-earth-200)',
+          300: 'var(--color-earth-300)',
+          400: 'var(--color-earth-400)',
+          500: 'var(--color-earth-500)',
+          600: 'var(--color-earth-600)',
+          700: 'var(--color-earth-700)',
+          800: 'var(--color-earth-800)',
+          900: 'var(--color-earth-900)',
+          950: '#161310',
+        },
+      },
+      fontFamily: {
+        sans: ['DM Sans', 'system-ui', 'sans-serif'],
+        serif: ['Crimson Pro', 'Georgia', 'serif'],
+      },
+      spacing: {
+        '18': '4.5rem',
+        '88': '22rem',
+        '128': '32rem',
+      },
+      boxShadow: {
+        'soft': '0 2px 15px -3px rgba(61, 49, 38, 0.08), 0 10px 20px -2px rgba(61, 49, 38, 0.05)',
+        'lifted': '0 20px 40px -10px rgba(61, 49, 38, 0.15)',
+      },
+      animation: {
+        'fade-in': 'fadeIn 0.6s ease-out forwards',
+        'slide-up': 'slideUp 0.8s ease-out forwards',
+        'scale-in': 'scaleIn 0.5s ease-out forwards',
+      },
+    },
+  },
+  plugins: [],
+};
+export default config;
