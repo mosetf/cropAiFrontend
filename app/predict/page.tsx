@@ -15,6 +15,12 @@ import {
   Sprout,
   ChevronDown,
   CloudRain,
+  Banknote,
+  Users,
+  Info,
+  Thermometer,
+  Wind,
+  Loader2,
 } from 'lucide-react';
 import { CropOption, LocationsGrouped } from '@/types';
 
@@ -34,14 +40,20 @@ function PredictContent() {
     soil_moisture: 25.0,
     organic_carbon: 1.5,
     fertilizer_kg_ha: 100.0,
-    // Weather inputs - actual user inputs
-    rainfall: 800.0,
-    temperature: 22.0,
-    humidity: 65.0,
+    // Optional economic overrides
+    market_price: '',
+    labour_cost: '',
   });
+
+  // Live weather preview for selected location
+  const [weather, setWeather] = useState<{ temp: number; humidity: number; description: string } | null>(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
+  const [weatherError, setWeatherError] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Load crops and locations from the API once on mount
   useEffect(() => {
@@ -51,8 +63,25 @@ function PredictContent() {
           apiClient.get('/api/v1/meta/crops/'),
           apiClient.get('/api/v1/meta/locations/'),
         ]);
-        setCrops(cropsRes.data);
-        setLocationsGrouped(locsRes.data);
+
+        // Backend returns { crops: [...], count: N }
+        setCrops(cropsRes.data.crops || []);
+
+        // Backend returns { locations: [...], count: N } — group by region
+        const locations = locsRes.data.locations || [];
+        const grouped: LocationsGrouped = {};
+        for (const loc of locations) {
+          const region = loc.region || 'Other';
+          if (!grouped[region]) grouped[region] = [];
+          grouped[region].push({
+            value: loc.name,
+            label: loc.name,
+            region: loc.region,
+            lat: loc.lat,
+            lon: loc.lon,
+          });
+        }
+        setLocationsGrouped(grouped);
       } catch {
         // Non-fatal — form still works with hardcoded defaults
       } finally {
@@ -62,6 +91,52 @@ function PredictContent() {
     load();
   }, []);
 
+  // Fetch live weather preview when location changes
+  useEffect(() => {
+    if (metaLoading) return;
+
+    // Find lat/lon for selected location
+    let lat: number | null = null;
+    let lon: number | null = null;
+    for (const locs of Object.values(locationsGrouped)) {
+      const found = locs.find((l) => l.value === formData.location);
+      if (found) {
+        lat = found.lat;
+        lon = found.lon;
+        break;
+      }
+    }
+    if (!lat || !lon) return;
+
+    let cancelled = false;
+    const fetchWeather = async () => {
+      setWeatherLoading(true);
+      setWeather(null);
+      setWeatherError(false);
+      try {
+        const res = await apiClient.get('/api/v1/weather/current/', {
+          params: { lat, lon },
+        });
+        if (!cancelled) {
+          setWeather({
+            temp: res.data.temperature,
+            humidity: res.data.humidity,
+            description: res.data.description || 'Current conditions',
+          });
+        }
+      } catch {
+        if (!cancelled) {
+          setWeatherError(true);
+          setWeather(null);
+        }
+      } finally {
+        if (!cancelled) setWeatherLoading(false);
+      }
+    };
+    fetchWeather();
+    return () => { cancelled = true; };
+  }, [formData.location, metaLoading, locationsGrouped]);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -69,7 +144,7 @@ function PredictContent() {
     setFormData((prev) => ({
       ...prev,
       [name]:
-        name === 'crop' || name === 'location' || name === 'planting_date'
+        name === 'crop' || name === 'location' || name === 'planting_date' || name === 'market_price' || name === 'labour_cost'
           ? value
           : parseFloat(value) || 0,
     }));
@@ -81,26 +156,28 @@ function PredictContent() {
     setError('');
 
     try {
-      // Send complete payload with backend-required fields set programmatically
-      const payload = {
-        ...formData,
-        // Set default values for backend-required fields (not user input)
-        predicted_yield: 0, // Backend will compute this
-        harvest_window: '', // Backend will compute this
-        net_profit: 0, // Backend will compute this
-        rainfall: formData.rainfall || 800, // Default rainfall if not set
-        temperature: formData.temperature || 22, // Default temperature if not set
-        humidity: formData.humidity || 65, // Default humidity if not set
+      // Only send user input fields — backend auto-fetches weather & computes outputs
+      const payload: Record<string, unknown> = {
+        crop: formData.crop,
+        location: formData.location,
+        planting_date: formData.planting_date,
+        soil_ph: formData.soil_ph,
+        soil_moisture: formData.soil_moisture,
+        organic_carbon: formData.organic_carbon,
+        fertilizer_kg_ha: formData.fertilizer_kg_ha,
       };
-      
+
+      // Only include optional fields if user filled them
+      if (formData.market_price) payload.market_price = parseFloat(formData.market_price);
+      if (formData.labour_cost) payload.labour_cost = parseFloat(formData.labour_cost);
+
       const response = await apiClient.post('/api/v1/predictions/', payload);
       router.push(`/results/${response.data.id}`);
     } catch (err: any) {
       const data = err.response?.data || {};
       console.error('Prediction error:', data);
-      
+
       if (err.response?.status === 400 && data && typeof data === 'object') {
-        // Handle field-specific errors
         const errorMessages: string[] = [];
         Object.keys(data).forEach(field => {
           const fieldErrors = data[field];
@@ -111,9 +188,7 @@ function PredictContent() {
         setError(errorMessages.length > 0 ? errorMessages.join(', ') : 'Validation error');
       } else {
         setError(
-          data.detail ||
-            data.error ||
-            'Could not create prediction. Check your inputs and try again.'
+          data.detail || data.error || 'Could not create prediction. Check your inputs and try again.'
         );
       }
     } finally {
@@ -142,8 +217,8 @@ function PredictContent() {
               </div>
               <h2 className="text-2xl font-bold text-neutral-900">New prediction</h2>
             </div>
-            <p className="text-neutral-600">
-              Enter your farm details to forecast yield and profit.
+            <p className="text-neutral-600 text-sm">
+              Enter your farm details. Weather is fetched automatically for your location.
             </p>
           </div>
 
@@ -155,10 +230,10 @@ function PredictContent() {
               </div>
             )}
 
-            {/* Crop + Location */}
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            {/* ── Crop + Location + Date ─────────────────────────────── */}
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-neutral-900 mb-2">
+                <label className="block text-sm font-medium text-neutral-900 mb-1.5">
                   Crop type
                 </label>
                 <div className="relative">
@@ -167,16 +242,13 @@ function PredictContent() {
                     value={formData.crop}
                     onChange={handleChange}
                     disabled={metaLoading}
-                    className="w-full appearance-none px-4 py-2.5 border border-neutral-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-opacity-20 text-neutral-900 transition pr-10 disabled:opacity-60"
+                    className="w-full appearance-none px-4 py-2.5 border border-neutral-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-neutral-900 transition pr-10 disabled:opacity-60 bg-white"
                   >
                     {crops.length > 0 ? (
                       crops.map((c) => (
-                        <option key={c.value} value={c.value}>
-                          {c.label}
-                        </option>
+                        <option key={c.value} value={c.value}>{c.label}</option>
                       ))
                     ) : (
-                      // Fallback while loading
                       <>
                         <option value="maize">Maize</option>
                         <option value="beans">Beans</option>
@@ -190,15 +262,12 @@ function PredictContent() {
                       </>
                     )}
                   </select>
-                  <ChevronDown
-                    size={16}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"
-                  />
+                  <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-neutral-900 mb-2">
+                <label className="block text-sm font-medium text-neutral-900 mb-1.5">
                   Location
                 </label>
                 <div className="relative">
@@ -207,20 +276,17 @@ function PredictContent() {
                     value={formData.location}
                     onChange={handleChange}
                     disabled={metaLoading}
-                    className="w-full appearance-none px-4 py-2.5 border border-neutral-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-opacity-20 text-neutral-900 transition pr-10 disabled:opacity-60"
+                    className="w-full appearance-none px-4 py-2.5 border border-neutral-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-neutral-900 transition pr-10 disabled:opacity-60 bg-white"
                   >
                     {Object.keys(locationsGrouped).length > 0 ? (
                       Object.entries(locationsGrouped).map(([region, locs]) => (
                         <optgroup key={region} label={region}>
                           {locs.map((loc) => (
-                            <option key={loc.value} value={loc.value}>
-                              {loc.label}
-                            </option>
+                            <option key={loc.value} value={loc.value}>{loc.label}</option>
                           ))}
                         </optgroup>
                       ))
                     ) : (
-                      // Fallback — key locations while loading
                       <>
                         <option value="Nakuru">Nakuru</option>
                         <option value="Eldoret">Eldoret</option>
@@ -230,15 +296,12 @@ function PredictContent() {
                       </>
                     )}
                   </select>
-                  <ChevronDown
-                    size={16}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"
-                  />
+                  <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
                 </div>
               </div>
 
               <div className="sm:col-span-2">
-                <label className="flex items-center gap-2 text-sm font-medium text-neutral-900 mb-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-neutral-900 mb-1.5">
                   <Calendar size={16} />
                   Planting date
                 </label>
@@ -248,20 +311,65 @@ function PredictContent() {
                   value={formData.planting_date}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-opacity-20 text-neutral-900 transition"
+                  className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-neutral-900 transition"
                 />
+                <p className="mt-1 text-xs text-neutral-500">
+                  Max 180 days in the past or 180 days in the future.
+                </p>
               </div>
             </div>
 
-            {/* Soil conditions */}
+            {/* ── Live Weather Preview ───────────────────────────────── */}
+            <div className={`rounded-lg border p-4 ${
+              weatherError
+                ? 'bg-red-50 border-red-200'
+                : 'bg-gradient-to-r from-sky-50 to-blue-50 border-sky-200'
+            }`}>
+              <div className="flex items-center gap-2 mb-2">
+                <CloudRain size={16} className={weatherError ? 'text-red-600' : 'text-sky-600'} />
+                <span className={`text-sm font-medium ${weatherError ? 'text-red-900' : 'text-sky-900'}`}>
+                  Current weather
+                </span>
+                <span className={`text-xs ${weatherError ? 'text-red-500' : 'text-sky-600'}`}>
+                  • {formData.location}
+                </span>
+              </div>
+              {weatherLoading ? (
+                <div className="flex items-center gap-2 text-sm text-sky-700">
+                  <Loader2 size={14} className="animate-spin" />
+                  Fetching weather…
+                </div>
+              ) : weatherError ? (
+                <p className="text-sm text-red-700">
+                  Unable to fetch weather data. Prediction will use estimated conditions.
+                </p>
+              ) : weather ? (
+                <div className="flex flex-wrap gap-4">
+                  <div className="flex items-center gap-1.5 text-sm text-sky-800">
+                    <Thermometer size={14} />
+                    <span className="font-medium">{weather.temp}°C</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-sm text-sky-800">
+                    <Droplets size={14} />
+                    <span className="font-medium">{weather.humidity}% humidity</span>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-sky-600">
+                  Select a location to see current weather.
+                </p>
+              )}
+            </div>
+
+            {/* ── Soil Conditions ────────────────────────────────────── */}
             <div className="border-t border-neutral-200 pt-6">
               <h3 className="flex items-center gap-2 text-lg font-semibold text-neutral-900 mb-4">
                 <Droplets size={20} className="text-primary-600" />
                 Soil conditions
               </h3>
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-neutral-900 mb-2">
+                  <label className="block text-sm font-medium text-neutral-900 mb-1.5">
                     Soil pH
                   </label>
                   <input
@@ -272,15 +380,13 @@ function PredictContent() {
                     max="10"
                     value={formData.soil_ph}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-opacity-20 text-neutral-900 transition"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-neutral-900 transition"
                   />
-                  <p className="mt-1 text-xs text-neutral-500">
-                    Optimal for most crops: 5.5–7.0
-                  </p>
+                  <p className="mt-1 text-xs text-neutral-500">Range 3–10. Optimal: 5.5–7.0</p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-neutral-900 mb-2">
+                  <label className="block text-sm font-medium text-neutral-900 mb-1.5">
                     Soil moisture (%)
                   </label>
                   <input
@@ -291,15 +397,13 @@ function PredictContent() {
                     max="100"
                     value={formData.soil_moisture}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-opacity-20 text-neutral-900 transition"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-neutral-900 transition"
                   />
-                  <p className="mt-1 text-xs text-neutral-500">
-                    Field capacity: 20–30%
-                  </p>
+                  <p className="mt-1 text-xs text-neutral-500">Field capacity: 20–30%</p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-neutral-900 mb-2">
+                  <label className="block text-sm font-medium text-neutral-900 mb-1.5">
                     Organic carbon (%)
                   </label>
                   <input
@@ -310,12 +414,13 @@ function PredictContent() {
                     max="10"
                     value={formData.organic_carbon}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-opacity-20 text-neutral-900 transition"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-neutral-900 transition"
                   />
+                  <p className="mt-1 text-xs text-neutral-500">Target &gt;2% for good fertility</p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-neutral-900 mb-2">
+                  <label className="block text-sm font-medium text-neutral-900 mb-1.5">
                     Fertilizer (kg/ha)
                   </label>
                   <input
@@ -325,92 +430,80 @@ function PredictContent() {
                     min="0"
                     value={formData.fertilizer_kg_ha}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-opacity-20 text-neutral-900 transition"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-neutral-900 transition"
                   />
-                </div>
-              </div>
-
-              {/* Weather Conditions */}
-              <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-6 mb-6">
-                <h3 className="text-lg font-semibold text-blue-900 mb-1 flex items-center gap-2">
-                  <CloudRain size={20} />
-                  Weather Conditions
-                </h3>
-                <p className="text-sm text-blue-700 mb-4">Expected weather for your growing season</p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-900 mb-2">
-                      Expected Rainfall (mm/season)
-                    </label>
-                    <input
-                      type="number"
-                      name="rainfall"
-                      step="10"
-                      min="200"
-                      max="2000"
-                      value={formData.rainfall}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-opacity-20 text-neutral-900 transition"
-                    />
-                    <p className="mt-1 text-xs text-neutral-500">
-                      Typical: 600-1200mm
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-900 mb-2">
-                      Average Temperature (°C)
-                    </label>
-                    <input
-                      type="number"
-                      name="temperature"
-                      step="0.5"
-                      min="10"
-                      max="35"
-                      value={formData.temperature}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-opacity-20 text-neutral-900 transition"
-                    />
-                    <p className="mt-1 text-xs text-neutral-500">
-                      Growing season average
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-900 mb-2">
-                      Average Humidity (%)
-                    </label>
-                    <input
-                      type="number"
-                      name="humidity"
-                      step="1"
-                      min="40"
-                      max="90"
-                      value={formData.humidity}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-opacity-20 text-neutral-900 transition"
-                    />
-                    <p className="mt-1 text-xs text-neutral-500">
-                      Relative humidity
-                    </p>
-                  </div>
+                  <p className="mt-1 text-xs text-neutral-500">Total fertilizer applied</p>
                 </div>
               </div>
             </div>
 
-            <div className="pt-2">
-              <Button
-                type="submit"
-                isLoading={isLoading}
-                className="w-full"
-                size="lg"
+            {/* ── Advanced (optional) ────────────────────────────────── */}
+            <div className="border-t border-neutral-200 pt-5">
+              <button
+                type="button"
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                className="flex items-center gap-2 text-sm font-medium text-neutral-700 hover:text-neutral-900 transition"
               >
-                {isLoading ? 'Running prediction...' : 'Create prediction'}
+                <ChevronDown
+                  size={16}
+                  className={`transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
+                />
+                Advanced options
+              </button>
+
+              {showAdvanced && (
+                <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">
+                  <div>
+                    <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-900 mb-1.5">
+                      <Banknote size={14} className="text-neutral-500" />
+                      Market price override
+                    </label>
+                    <input
+                      type="number"
+                      name="market_price"
+                      step="500"
+                      min="0"
+                      value={formData.market_price}
+                      onChange={handleChange}
+                      placeholder="Leave blank for default"
+                      className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-neutral-900 transition placeholder:text-neutral-400"
+                    />
+                    <p className="mt-1 text-xs text-neutral-500">
+                      Expected farm-gate price (KES/tonne)
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-900 mb-1.5">
+                      <Users size={14} className="text-neutral-500" />
+                      Labour cost override
+                    </label>
+                    <input
+                      type="number"
+                      name="labour_cost"
+                      step="1000"
+                      min="0"
+                      value={formData.labour_cost}
+                      onChange={handleChange}
+                      placeholder="Leave blank for default"
+                      className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 text-neutral-900 transition placeholder:text-neutral-400"
+                    />
+                    <p className="mt-1 text-xs text-neutral-500">
+                      Labour cost (KES/ha)
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── Submit ─────────────────────────────────────────────── */}
+            <div className="pt-2">
+              <Button type="submit" isLoading={isLoading} className="w-full" size="lg">
+                {isLoading ? 'Running prediction…' : 'Create prediction'}
               </Button>
-              <p className="mt-3 text-xs text-center text-neutral-500">
-                Weather data is fetched automatically from OpenWeather for your
-                selected location.
+              <p className="mt-3 text-xs text-center text-neutral-500 flex items-center justify-center gap-1">
+                <Info size={12} />
+                Yield, profit & harvest window are computed automatically.
               </p>
             </div>
           </form>

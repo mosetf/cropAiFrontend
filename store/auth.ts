@@ -9,6 +9,7 @@ interface AuthState {
   error: string | null;
 
   setCredentials: (response: LoginResponse, remember: boolean) => void;
+  setAccessToken: (token: string) => void;
   logout: () => void;
   setError: (error: string | null) => void;
   setLoading: (loading: boolean) => void;
@@ -32,6 +33,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     // remember me → localStorage (survives browser restart)
     // default       → sessionStorage (gone on tab close)
     saveAuthCredentials(response, remember);
+  },
+
+  setAccessToken: (token: string) => {
+    set({ accessToken: token, error: null });
+    // Update the persisted auth storage with the new token
+    updateAccessTokenInStorage(token);
   },
 
   logout: () => {
@@ -97,4 +104,21 @@ export const clearAuthCredentials = () => {
   if (typeof window === 'undefined') return;
   localStorage.removeItem('cropai_auth');
   sessionStorage.removeItem('cropai_auth');
+};
+
+export const updateAccessTokenInStorage = (token: string) => {
+  if (typeof window === 'undefined') return;
+  // Update whichever storage is currently active
+  const raw = localStorage.getItem('cropai_auth') || sessionStorage.getItem('cropai_auth');
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      parsed.accessToken = token;
+      const updated = JSON.stringify(parsed);
+      localStorage.setItem('cropai_auth', updated);
+      sessionStorage.setItem('cropai_auth', updated);
+    } catch {
+      // Corrupted data — let logout handle cleanup
+    }
+  }
 };

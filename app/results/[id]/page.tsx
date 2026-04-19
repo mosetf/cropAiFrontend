@@ -68,7 +68,11 @@ function ResultsContent() {
     }
   };
 
-  const getRiskBadge = (level: RiskLevel) => {
+  const getRiskBadge = (level: string | undefined) => {
+    if (!level || !['low', 'medium', 'high'].includes(level)) {
+      level = 'medium';
+    }
+    const riskLevel = level as RiskLevel;
     const styles = {
       low: 'bg-green-100 text-green-800 border-green-200',
       medium: 'bg-yellow-100 text-yellow-800 border-yellow-200',
@@ -81,9 +85,9 @@ function ResultsContent() {
     };
 
     return (
-      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium border ${styles[level]}`}>
-        {icons[level]}
-        {level.charAt(0).toUpperCase() + level.slice(1)} risk
+      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium border ${styles[riskLevel]}`}>
+        {icons[riskLevel]}
+        {riskLevel.charAt(0).toUpperCase() + riskLevel.slice(1)} risk
       </span>
     );
   };
