@@ -108,15 +108,17 @@ export const clearAuthCredentials = () => {
 
 export const updateAccessTokenInStorage = (token: string) => {
   if (typeof window === 'undefined') return;
-  // Update whichever storage is currently active
-  const raw = localStorage.getItem('cropai_auth') || sessionStorage.getItem('cropai_auth');
-  if (raw) {
+
+  const localRaw = localStorage.getItem('cropai_auth');
+  const sessionRaw = sessionStorage.getItem('cropai_auth');
+  const storage = localRaw ? localStorage : sessionRaw ? sessionStorage : null;
+  const raw = localRaw || sessionRaw;
+
+  if (storage && raw) {
     try {
       const parsed = JSON.parse(raw);
       parsed.accessToken = token;
-      const updated = JSON.stringify(parsed);
-      localStorage.setItem('cropai_auth', updated);
-      sessionStorage.setItem('cropai_auth', updated);
+      storage.setItem('cropai_auth', JSON.stringify(parsed));
     } catch {
       // Corrupted data — let logout handle cleanup
     }
