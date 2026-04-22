@@ -101,12 +101,11 @@ export default function Home() {
   }, []);
 
   return (
-    <div style={{ fontFamily: "'Lora', Georgia, serif", background: '#FDFAF5', color: '#1C1410', minHeight: '100vh' }}>
+    <div style={{ fontFamily: "Georgia, 'Times New Roman', serif", background: '#FDFAF5', color: '#1C1410', minHeight: '100vh' }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Nunito+Sans:wght@400;600;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        .sans { font-family: 'Nunito Sans', system-ui, sans-serif !important; }
+        .sans { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important; }
 
         .nav {
           position: fixed; top: 0; left: 0; right: 0; z-index: 100;
