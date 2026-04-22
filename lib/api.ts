@@ -11,6 +11,14 @@ export const apiClient: AxiosInstance = axios.create({
   withCredentials: true,
 });
 
+const refreshClient: AxiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: true,
+});
+
 // ── Refresh token lock ──────────────────────────────────────────────
 // Prevents the "refresh storm" where multiple concurrent 401s each
 // trigger their own refresh, causing a cascade of failures.
@@ -65,7 +73,7 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const response = await apiClient.post('/api/v1/auth/refresh/');
+        const response = await refreshClient.post('/api/v1/auth/refresh/');
         const { access } = response.data;
 
         useAuthStore.getState().setAccessToken(access);
