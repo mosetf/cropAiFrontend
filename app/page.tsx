@@ -418,10 +418,10 @@ export default function Home() {
       {/* NAV */}
       <nav className={`nav${scrolled ? ' scrolled' : ''}`}>
         <div className="nav-inner">
-          <a href="/" className="nav-logo">
+          <Link href="/" className="nav-logo">
             <div className="nav-leaf"><span className="nav-leaf-inner">🌱</span></div>
             CropAI Kenya
-          </a>
+          </Link>
           <div className="nav-links">
             <a href="#problems" className="nav-link">Why it works</a>
             <a href="#crops" className="nav-link">Supported crops</a>
