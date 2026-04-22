@@ -1,209 +1,684 @@
+'use client';
+
 import Link from 'next/link';
-import { Sprout, CloudRain, LineChart, Leaf, ArrowRight, Wheat } from 'lucide-react';
-import { Button } from '@/components';
+import { useState, useEffect, useRef } from 'react';
+
+const SUPPORTED_CROPS = [
+  { name: 'Maize', season: 'March – Aug', yield: '2.1 t/ha avg', emoji: '🌽' },
+  { name: 'Beans', season: 'Oct – Jan', yield: '0.9 t/ha avg', emoji: '🫘' },
+  { name: 'Wheat', season: 'March – July', yield: '2.8 t/ha avg', emoji: '🌾' },
+  { name: 'Sorghum', season: 'March – Aug', yield: '1.4 t/ha avg', emoji: '🌿' },
+  { name: 'Coffee', season: 'Oct – Feb', yield: '0.6 t/ha avg', emoji: '☕' },
+  { name: 'Tea', season: 'Year-round', yield: '2.5 t/ha avg', emoji: '🍃' },
+  { name: 'Potatoes', season: 'March – June', yield: '8.2 t/ha avg', emoji: '🥔' },
+  { name: 'Cassava', season: 'March – Oct', yield: '10.1 t/ha avg', emoji: '🌱' },
+  { name: 'Rice', season: 'April – Sept', yield: '3.1 t/ha avg', emoji: '🌾' },
+];
+
+const PROBLEMS = [
+  {
+    icon: '🌧️',
+    title: 'You plant, but the rains fail',
+    body: "Short rains, long rains — the timing shifts every season. You rely on what worked last year. But last year was different.",
+    solution: 'CropAI pulls 10 years of rainfall data from your county and flags when your chosen planting date historically leads to low yields.',
+  },
+  {
+    icon: '📉',
+    title: 'You spend on fertilizer, but yields stay low',
+    body: "Fertilizer is expensive. You buy it, apply it, and still harvest less than your neighbor. Nobody tells you why.",
+    solution: 'Enter your soil pH and moisture levels. The model tells you exactly how much fertilizer will make a difference for your crop and soil type.',
+  },
+  {
+    icon: '💸',
+    title: 'You sell at harvest — always at the lowest price',
+    body: "Everyone harvests in May. Everyone sells in May. Prices drop. You needed to know your harvest window three months ago.",
+    solution: 'The system calculates your likely harvest window from your planting date so you can plan storage and time your sale better.',
+  },
+  {
+    icon: '🤷',
+    title: 'You chose the wrong crop for your land',
+    body: "Coffee looks like better money than maize. But your altitude, rainfall, and soil tell a different story. You find out after two seasons.",
+    solution: 'Compare yield and profit estimates across crops before you plant. Put numbers on the decision.',
+  },
+];
+
+const TESTIMONIALS = [
+  {
+    quote: "Last year I planted maize too late because I was waiting for the land to dry. The system showed me that planting two weeks earlier — even in slightly wet soil — gives better results in Eldoret. This season I tried it. Night and day.",
+    name: 'Peter Cheruiyot',
+    location: 'Eldoret, Uasin Gishu',
+    crop: 'Maize',
+  },
+  {
+    quote: "I was spending 8,000 shillings on fertilizer per acre and wondering why yields were flat. Turns out my soil pH was wrong for beans. The tool told me to lime the soil first. Simple fix I had never heard about.",
+    name: 'Grace Wambui',
+    location: 'Muranga, Central',
+    crop: 'Beans',
+  },
+];
+
+function useIntersection(threshold = 0.12) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } },
+      { threshold }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [threshold]);
+  return { ref, visible };
+}
+
+function FadeIn({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) {
+  const { ref, visible } = useIntersection();
+  return (
+    <div
+      ref={ref}
+      className={className}
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(28px)',
+        transition: `opacity 0.65s ease ${delay}ms, transform 0.65s ease ${delay}ms`,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
 
 export default function Home() {
+  const [activeCrop, setActiveCrop] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   return (
-    <div className="min-h-screen grain-texture">
-      {/* Header / Navbar */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-earth-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            <Link href="/" className="flex items-center gap-3 text-sage-800 group">
-              <div className="relative">
-                <Wheat size={32} className="transition-transform group-hover:rotate-12" />
-                <div className="absolute inset-0 bg-sage-500/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-              <span className="text-2xl font-serif font-bold tracking-tight">CropAI Kenya</span>
-            </Link>
-            <nav className="hidden md:flex items-center gap-8">
-              <a href="#features" className="text-earth-700 hover:text-sage-700 transition font-medium">How It Works</a>
-              <Link href="/login" className="text-earth-700 hover:text-sage-700 transition font-medium">Login</Link>
-              <Link href="/signup">
-                <Button size="sm" className="shadow-md hover:shadow-lg transition-shadow">Get Started</Button>
-              </Link>
-            </nav>
+    <div style={{ fontFamily: "'Lora', Georgia, serif", background: '#FDFAF5', color: '#1C1410', minHeight: '100vh' }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Nunito+Sans:wght@400;600;700&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        .sans { font-family: 'Nunito Sans', system-ui, sans-serif !important; }
+
+        .nav {
+          position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+          padding: 0 1.5rem;
+          transition: background 0.3s, box-shadow 0.3s, border-color 0.3s;
+        }
+        .nav.scrolled {
+          background: rgba(253,250,245,0.96);
+          backdrop-filter: blur(12px);
+          border-bottom: 1px solid rgba(61,43,31,0.1);
+          box-shadow: 0 2px 20px rgba(61,43,31,0.07);
+        }
+        .nav-inner {
+          max-width: 1100px; margin: 0 auto;
+          display: flex; align-items: center; justify-content: space-between;
+          height: 72px;
+        }
+        .nav-logo {
+          font-size: 1.25rem; font-weight: 700; color: #3D2B1F;
+          text-decoration: none; display: flex; align-items: center; gap: 10px;
+          letter-spacing: -0.02em;
+        }
+        .nav-leaf {
+          width: 34px; height: 34px; background: #2D6A2D;
+          border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+          display: flex; align-items: center; justify-content: center;
+          font-size: 0.9rem; flex-shrink: 0; transition: transform 0.4s ease;
+        }
+        .nav-logo:hover .nav-leaf { transform: rotate(-45deg) scale(1.1); }
+        .nav-leaf-inner { transform: rotate(45deg); display: block; }
+        .nav-links { display: flex; align-items: center; gap: 2rem; }
+        .nav-link {
+          font-family: 'Nunito Sans', sans-serif;
+          font-size: 0.88rem; font-weight: 600; color: #5C4A3A;
+          text-decoration: none; transition: color 0.2s;
+        }
+        .nav-link:hover { color: #2D6A2D; }
+        .btn-primary {
+          font-family: 'Nunito Sans', sans-serif;
+          background: #2D6A2D; color: white;
+          padding: 0.6rem 1.4rem; border-radius: 8px;
+          font-size: 0.88rem; font-weight: 700;
+          text-decoration: none; border: none; cursor: pointer;
+          transition: background 0.2s, transform 0.15s;
+          display: inline-flex; align-items: center; gap: 6px;
+        }
+        .btn-primary:hover { background: #235823; transform: translateY(-1px); }
+        .btn-outline {
+          font-family: 'Nunito Sans', sans-serif;
+          background: transparent; color: #2D6A2D;
+          padding: 0.6rem 1.4rem; border-radius: 8px;
+          font-size: 0.88rem; font-weight: 700;
+          text-decoration: none;
+          border: 2px solid #2D6A2D;
+          transition: background 0.2s, color 0.2s;
+          display: inline-flex; align-items: center; gap: 6px;
+        }
+        .btn-outline:hover { background: #2D6A2D; color: white; }
+
+        /* HERO */
+        .hero {
+          min-height: 100vh;
+          background: linear-gradient(155deg, #EFE3CA 0%, #E2CFA8 45%, #D3BC90 100%);
+          display: flex; align-items: center;
+          position: relative; overflow: hidden;
+          padding: 100px 1.5rem 60px;
+        }
+        .hero-orb {
+          position: absolute; border-radius: 50%;
+          background: rgba(45,106,45,0.07); pointer-events: none;
+        }
+        .hero-inner {
+          max-width: 1100px; margin: 0 auto; width: 100%;
+          display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 4rem; align-items: center;
+        }
+        .hero-tag {
+          font-family: 'Nunito Sans', sans-serif;
+          font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em;
+          text-transform: uppercase; color: #4A8F4A;
+          background: rgba(45,106,45,0.1);
+          padding: 6px 14px; border-radius: 20px;
+          display: inline-block; margin-bottom: 1.2rem;
+        }
+        .hero h1 {
+          font-size: clamp(2rem, 4.2vw, 3.3rem); font-weight: 700; line-height: 1.15;
+          color: #3D2B1F; margin-bottom: 1.4rem; letter-spacing: -0.02em;
+        }
+        .hero h1 em { color: #2D6A2D; font-style: italic; }
+        .hero-lead {
+          font-family: 'Nunito Sans', sans-serif;
+          font-size: 1.05rem; line-height: 1.7; color: #5C4A3A; margin-bottom: 2rem;
+        }
+        .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; }
+
+        /* HERO CARD */
+        .hero-card {
+          background: white; border-radius: 18px; padding: 1.8rem;
+          box-shadow: 0 20px 60px rgba(61,43,31,0.14);
+          border: 1px solid rgba(196,168,130,0.3); position: relative;
+        }
+        .card-label {
+          font-family: 'Nunito Sans', sans-serif;
+          font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em;
+          text-transform: uppercase; color: #C4A882; margin-bottom: 1.2rem;
+        }
+        .yield-big { font-size: 2.8rem; font-weight: 700; color: #2D6A2D; line-height: 1; }
+        .yield-unit {
+          font-family: 'Nunito Sans', sans-serif;
+          font-size: 0.82rem; color: #5C4A3A; margin-bottom: 1.4rem; margin-top: 2px;
+        }
+        .bar-row { margin-bottom: 0.75rem; }
+        .bar-labels {
+          font-family: 'Nunito Sans', sans-serif; font-size: 0.75rem; color: #5C4A3A;
+          display: flex; justify-content: space-between; margin-bottom: 4px;
+        }
+        .bar-track { height: 6px; background: #EDE0CC; border-radius: 3px; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 3px; }
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; margin-top: 1.2rem; }
+        .stat-box { background: #F5EDD8; border-radius: 10px; padding: 0.75rem 0.9rem; }
+        .stat-val { font-size: 1.2rem; font-weight: 700; color: #3D2B1F; }
+        .stat-lbl { font-family: 'Nunito Sans', sans-serif; font-size: 0.68rem; color: #5C4A3A; margin-top: 1px; }
+        .badge {
+          position: absolute;
+          font-family: 'Nunito Sans', sans-serif; font-size: 0.75rem; font-weight: 700;
+          border-radius: 10px; padding: 0.5rem 0.9rem; white-space: nowrap;
+          box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+        }
+
+        /* STATS BAR */
+        .stats-bar { background: #2D6A2D; padding: 1.1rem 1.5rem; }
+        .stats-bar-inner {
+          max-width: 1100px; margin: 0 auto;
+          display: flex; justify-content: space-around; flex-wrap: wrap; gap: 1rem;
+        }
+        .stat-bar-item { text-align: center; color: white; }
+        .stat-bar-val { font-size: 1.35rem; font-weight: 700; }
+        .stat-bar-lbl {
+          font-family: 'Nunito Sans', sans-serif;
+          font-size: 0.75rem; opacity: 0.7; margin-top: 2px;
+        }
+
+        /* SECTIONS */
+        .section { padding: 80px 1.5rem; }
+        .section-inner { max-width: 1100px; margin: 0 auto; }
+        .section-tag {
+          font-family: 'Nunito Sans', sans-serif;
+          font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em;
+          text-transform: uppercase; color: #D97706;
+          display: block; margin-bottom: 0.8rem;
+        }
+        .section-title {
+          font-size: clamp(1.7rem, 3.3vw, 2.5rem); font-weight: 700;
+          color: #3D2B1F; margin-bottom: 0.9rem; line-height: 1.2; letter-spacing: -0.02em;
+        }
+        .section-sub {
+          font-family: 'Nunito Sans', sans-serif;
+          font-size: 1rem; color: #5C4A3A; line-height: 1.65; max-width: 540px;
+        }
+
+        /* PROBLEMS */
+        .problem-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; margin-top: 3rem; }
+        .problem-card {
+          background: white; border-radius: 16px; padding: 1.8rem;
+          border: 1.5px solid rgba(196,168,130,0.25);
+          box-shadow: 0 3px 18px rgba(61,43,31,0.06);
+          transition: box-shadow 0.2s, transform 0.2s;
+        }
+        .problem-card:hover { box-shadow: 0 8px 32px rgba(61,43,31,0.11); transform: translateY(-2px); }
+        .problem-icon { font-size: 1.9rem; margin-bottom: 0.8rem; }
+        .problem-title { font-size: 1.15rem; font-weight: 700; color: #3D2B1F; margin-bottom: 0.55rem; line-height: 1.3; }
+        .problem-body {
+          font-family: 'Nunito Sans', sans-serif; font-size: 0.9rem; color: #5C4A3A;
+          line-height: 1.65; margin-bottom: 0.9rem;
+        }
+        .problem-rule { height: 1.5px; background: #A8D5A2; margin-bottom: 0.9rem; }
+        .solution-label {
+          font-family: 'Nunito Sans', sans-serif;
+          font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em;
+          text-transform: uppercase; color: #2D6A2D; margin-bottom: 0.35rem;
+        }
+        .solution-text {
+          font-family: 'Nunito Sans', sans-serif; font-size: 0.87rem;
+          color: #1C1410; line-height: 1.6;
+        }
+
+        /* CROPS */
+        .crops-bg { background: #F5EDD8; }
+        .crop-tabs { display: flex; gap: 0.45rem; flex-wrap: wrap; margin: 2.2rem 0 1.8rem; }
+        .crop-tab {
+          font-family: 'Nunito Sans', sans-serif;
+          font-size: 0.82rem; font-weight: 600;
+          padding: 0.45rem 1rem; border-radius: 8px;
+          border: 1.5px solid rgba(61,43,31,0.12);
+          background: white; color: #5C4A3A;
+          cursor: pointer; transition: all 0.18s;
+        }
+        .crop-tab.active { background: #2D6A2D; color: white; border-color: #2D6A2D; }
+        .crop-tab:hover:not(.active) { border-color: #4A8F4A; color: #2D6A2D; }
+        .crop-detail {
+          background: white; border-radius: 18px; padding: 2.4rem;
+          border: 1px solid rgba(196,168,130,0.25);
+          box-shadow: 0 4px 24px rgba(61,43,31,0.07);
+          display: grid; grid-template-columns: 1fr 1.6fr; gap: 2.5rem; align-items: center;
+        }
+        .crop-emoji-wrap { text-align: center; font-size: 5rem; }
+        .crop-name { font-size: 2rem; font-weight: 700; color: #3D2B1F; margin-bottom: 0.8rem; }
+        .crop-meta-row { display: flex; gap: 2rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
+        .crop-meta-label {
+          font-family: 'Nunito Sans', sans-serif;
+          font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em;
+          text-transform: uppercase; color: #C4A882; margin-bottom: 2px;
+        }
+        .crop-meta-val {
+          font-family: 'Nunito Sans', sans-serif;
+          font-size: 0.92rem; font-weight: 700; color: #1C1410;
+        }
+        .crop-check {
+          font-family: 'Nunito Sans', sans-serif; font-size: 0.87rem; color: #5C4A3A;
+          display: flex; gap: 0.5rem; align-items: flex-start; margin-bottom: 0.45rem;
+          line-height: 1.5;
+        }
+        .crop-check-icon { color: #2D6A2D; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+
+        /* HOW */
+        .steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 2rem; margin-top: 3rem; }
+        .step { text-align: center; padding: 2rem 1.5rem; }
+        .step-num {
+          width: 50px; height: 50px; border-radius: 50%;
+          background: #2D6A2D; color: white;
+          font-family: 'Nunito Sans', sans-serif;
+          font-size: 1.15rem; font-weight: 700;
+          display: flex; align-items: center; justify-content: center;
+          margin: 0 auto 1.2rem;
+        }
+        .step-title { font-size: 1.05rem; font-weight: 700; color: #3D2B1F; margin-bottom: 0.55rem; }
+        .step-body {
+          font-family: 'Nunito Sans', sans-serif;
+          font-size: 0.88rem; color: #5C4A3A; line-height: 1.65;
+        }
+
+        /* TESTIMONIALS */
+        .testimonials-bg { background: #3D2B1F; }
+        .testimonials-bg .section-tag { color: #A8D5A2; }
+        .testimonials-bg .section-title { color: white; }
+        .testimonials-bg .section-sub { color: rgba(255,255,255,0.6); }
+        .testimonial-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; margin-top: 2.5rem; }
+        .testimonial-card {
+          background: rgba(255,255,255,0.07); border-radius: 14px; padding: 1.8rem;
+          border: 1px solid rgba(255,255,255,0.09);
+        }
+        .testimonial-quote {
+          font-style: italic; font-size: 1rem; line-height: 1.72;
+          color: rgba(255,255,255,0.88); margin-bottom: 1.2rem;
+        }
+        .testimonial-name {
+          font-family: 'Nunito Sans', sans-serif;
+          font-size: 0.88rem; font-weight: 700; color: white; margin-bottom: 2px;
+        }
+        .testimonial-meta {
+          font-family: 'Nunito Sans', sans-serif;
+          font-size: 0.75rem; color: rgba(255,255,255,0.42);
+        }
+
+        /* CTA */
+        .cta-section {
+          background: linear-gradient(135deg, #2D6A2D 0%, #1A4220 100%);
+          text-align: center; padding: 80px 1.5rem;
+        }
+        .cta-section h2 { font-size: clamp(1.7rem, 3.3vw, 2.6rem); color: white; margin-bottom: 1rem; }
+        .cta-section p {
+          font-family: 'Nunito Sans', sans-serif; font-size: 1rem;
+          color: rgba(255,255,255,0.68); max-width: 500px; margin: 0 auto 2rem; line-height: 1.65;
+        }
+        .btn-white {
+          font-family: 'Nunito Sans', sans-serif;
+          background: white; color: #2D6A2D;
+          padding: 0.85rem 2.2rem; border-radius: 10px;
+          font-size: 1rem; font-weight: 700; text-decoration: none;
+          display: inline-block;
+          transition: transform 0.15s, box-shadow 0.15s;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        .btn-white:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.28); }
+
+        footer { background: #140E09; color: rgba(255,255,255,0.45); padding: 36px 1.5rem; }
+        .footer-inner {
+          max-width: 1100px; margin: 0 auto;
+          display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;
+        }
+        .footer-logo { color: rgba(255,255,255,0.8); font-weight: 700; font-size: 0.95rem; }
+        .footer-links { display: flex; gap: 1.5rem; }
+        .footer-link {
+          font-family: 'Nunito Sans', sans-serif; font-size: 0.8rem;
+          color: rgba(255,255,255,0.38); text-decoration: none; transition: color 0.2s;
+        }
+        .footer-link:hover { color: rgba(255,255,255,0.75); }
+
+        @media (max-width: 768px) {
+          .hero-inner { grid-template-columns: 1fr; }
+          .hero-card-wrap { display: none; }
+          .problem-grid { grid-template-columns: 1fr; }
+          .crop-detail { grid-template-columns: 1fr; text-align: center; }
+          .steps { grid-template-columns: 1fr; }
+          .testimonial-grid { grid-template-columns: 1fr; }
+          .nav-links .nav-link { display: none; }
+          .footer-inner { flex-direction: column; text-align: center; }
+        }
+      `}</style>
+
+      {/* NAV */}
+      <nav className={`nav${scrolled ? ' scrolled' : ''}`}>
+        <div className="nav-inner">
+          <a href="/" className="nav-logo">
+            <div className="nav-leaf"><span className="nav-leaf-inner">🌱</span></div>
+            CropAI Kenya
+          </a>
+          <div className="nav-links">
+            <a href="#problems" className="nav-link">Why it works</a>
+            <a href="#crops" className="nav-link">Supported crops</a>
+            <a href="#how" className="nav-link">How it works</a>
+            <Link href="/login" className="nav-link">Sign in</Link>
+            <Link href="/signup" className="btn-primary">Get started free</Link>
           </div>
         </div>
-      </header>
+      </nav>
 
-      {/* Hero Section */}
-      <section className="relative py-32 px-4 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-sage-100 via-earth-50 to-sage-50" />
-        <div className="absolute top-20 right-10 w-96 h-96 bg-sage-300/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-10 left-10 w-80 h-80 bg-terracotta-300/15 rounded-full blur-3xl" />
-        
-        <div className="max-w-5xl mx-auto text-center relative z-10 animate-fade-in">
-          <div className="inline-block mb-6 px-4 py-2 bg-sage-100 border border-sage-300 rounded-full">
-            <span className="text-sm font-medium text-sage-800">Using local weather data</span>
+      {/* HERO */}
+      <section className="hero">
+        <div className="hero-orb" style={{ width: 560, height: 560, top: -200, right: -180 }} />
+        <div className="hero-orb" style={{ width: 280, height: 280, bottom: -80, left: -80 }} />
+        <div className="hero-inner">
+          <div style={{ opacity: 1, transform: 'translateY(0)', animation: 'none' }}>
+            <div
+              style={{
+                opacity: 0, transform: 'translateY(24px)',
+                animation: 'heroFadeIn 0.7s ease 0.1s forwards',
+              }}
+            >
+              <style>{`@keyframes heroFadeIn { to { opacity: 1; transform: translateY(0); } }`}</style>
+              <span className="hero-tag">For Kenyan Farmers</span>
+              <h1>
+                Know what to expect<br />
+                <em>before you plant</em>
+              </h1>
+              <p className="hero-lead">
+                Most farmers find out a harvest was bad in May. CropAI lets you check the numbers in January — before you buy seeds, before you pay for labour, before you commit to the wrong crop.
+              </p>
+              <div className="hero-actions">
+                <Link href="/signup" className="btn-primary">Try it free →</Link>
+                <a href="#problems" className="btn-outline">See how it works</a>
+              </div>
+            </div>
           </div>
-          <h1 className="text-6xl md:text-7xl lg:text-8xl font-serif font-bold mb-8 text-earth-900 text-balance leading-[1.1]">
-            Crop Yield Forecasts for Kenyan Farms
-          </h1>
-          <p className="text-xl md:text-2xl mb-12 text-earth-700 max-w-3xl mx-auto leading-relaxed">
-            See estimated yields for your crops using local weather and soil data. Works with maize, beans, wheat, and more.
-          </p>
-          <Link href="/signup" className="inline-block animate-slide-up" style={{ animationDelay: '0.2s', opacity: 0 }}>
-            <Button size="lg" className="shadow-lifted hover:shadow-xl transition-all group">
-              <span>Get Started</span>
-              <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" />
-            </Button>
-          </Link>
+
+          <div className="hero-card-wrap">
+            <div style={{ position: 'relative' }}>
+              <div className="hero-card">
+                <div className="card-label">Maize — Nakuru, 1 acre</div>
+                <div className="yield-big">2.4</div>
+                <div className="yield-unit">tonnes per hectare expected</div>
+                <div className="bar-row">
+                  <div className="bar-labels"><span>Rainfall match</span><span>Good</span></div>
+                  <div className="bar-track"><div className="bar-fill" style={{ width: '78%', background: '#2D6A2D' }} /></div>
+                </div>
+                <div className="bar-row">
+                  <div className="bar-labels"><span>Soil pH</span><span>Needs lime</span></div>
+                  <div className="bar-track"><div className="bar-fill" style={{ width: '52%', background: '#D97706' }} /></div>
+                </div>
+                <div className="bar-row">
+                  <div className="bar-labels"><span>Fertilizer efficiency</span><span>High</span></div>
+                  <div className="bar-track"><div className="bar-fill" style={{ width: '85%', background: '#2D6A2D' }} /></div>
+                </div>
+                <div className="stat-grid">
+                  <div className="stat-box">
+                    <div className="stat-val sans">KES 42,000</div>
+                    <div className="stat-lbl">Projected net profit</div>
+                  </div>
+                  <div className="stat-box">
+                    <div className="stat-val sans">July</div>
+                    <div className="stat-lbl">Expected harvest</div>
+                  </div>
+                </div>
+              </div>
+              <div className="badge" style={{ top: -18, right: -18, background: '#2D6A2D', color: 'white' }}>
+                ✓ Planted March 12
+              </div>
+              <div className="badge" style={{ bottom: -14, left: -14, background: '#D97706', color: 'white' }}>
+                ⚠ Lime before planting
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-24 bg-white relative">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#f0ebe0_1px,transparent_1px),linear-gradient(to_bottom,#f0ebe0_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-30" />
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center mb-20">
-            <h2 className="text-5xl md:text-6xl font-serif font-bold text-earth-900 mb-6">How it works</h2>
-            <div className="w-24 h-1 bg-gradient-to-r from-sage-400 to-terracotta-400 mx-auto rounded-full" />
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                icon: <Leaf size={32} />,
-                title: "Yield Estimates",
-                desc: "Enter your crop, location, and soil details to see expected yields per hectare.",
-                color: "sage"
-              },
-              {
-                icon: <LineChart size={32} />,
-                title: "Profit Calculator",
-                desc: "Compare expected income against planting and fertilizer costs.",
-                color: "terracotta"
-              },
-              {
-                icon: <CloudRain size={32} />,
-                title: "Weather Data",
-                desc: "Uses rainfall and temperature records from your area going back 10 years.",
-                color: "sage"
-              }
-            ].map((feature, idx) => (
-              <div 
-                key={idx}
-                className="group relative bg-gradient-to-br from-white to-earth-50 p-10 rounded-2xl border-2 border-earth-200 hover:border-sage-400 transition-all duration-300 hover:shadow-lifted animate-scale-in"
-                style={{ animationDelay: `${idx * 0.1}s`, opacity: 0 }}
-              >
-                <div className={`w-16 h-16 bg-${feature.color}-100 rounded-xl flex items-center justify-center mb-6 text-${feature.color}-700 group-hover:scale-110 transition-transform`}>
-                  {feature.icon}
+      {/* STATS BAR */}
+      <div className="stats-bar">
+        <div className="stats-bar-inner">
+          {[
+            { val: '9 crops', lbl: 'supported across Kenya' },
+            { val: '10 years', lbl: 'of weather data per county' },
+            { val: '40+ regions', lbl: 'with local soil data' },
+            { val: 'Free', lbl: 'to get started' },
+          ].map(s => (
+            <div key={s.val} className="stat-bar-item">
+              <div className="stat-bar-val">{s.val}</div>
+              <div className="stat-bar-lbl">{s.lbl}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* PROBLEMS */}
+      <section id="problems" className="section">
+        <div className="section-inner">
+          <FadeIn>
+            <span className="section-tag">Why most forecasts fail farmers</span>
+            <h2 className="section-title">Four things that go wrong<br />every season</h2>
+            <p className="section-sub">
+              These are not unusual situations. They happen to almost every smallholder in Kenya, every year. Here is what CropAI actually does about them.
+            </p>
+          </FadeIn>
+          <div className="problem-grid">
+            {PROBLEMS.map((p, i) => (
+              <FadeIn key={i} delay={i * 80}>
+                <div className="problem-card">
+                  <div className="problem-icon">{p.icon}</div>
+                  <div className="problem-title">{p.title}</div>
+                  <div className="problem-body">{p.body}</div>
+                  <div className="problem-rule" />
+                  <div className="solution-label">How we help</div>
+                  <div className="solution-text">{p.solution}</div>
                 </div>
-                <h3 className="text-2xl font-serif font-semibold mb-4 text-earth-900">{feature.title}</h3>
-                <p className="text-earth-600 leading-relaxed">{feature.desc}</p>
-              </div>
+              </FadeIn>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section className="py-24 bg-gradient-to-br from-sage-50 to-earth-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-20">
-            <h2 className="text-5xl md:text-6xl font-serif font-bold text-earth-900 mb-6">Farmer feedback</h2>
-            <div className="w-24 h-1 bg-gradient-to-r from-terracotta-400 to-sage-400 mx-auto rounded-full" />
+      {/* CROPS */}
+      <section id="crops" className="section crops-bg">
+        <div className="section-inner">
+          <FadeIn>
+            <span className="section-tag">Supported crops</span>
+            <h2 className="section-title">Nine crops, all major<br />Kenyan growing regions</h2>
+            <p className="section-sub">
+              The model was trained on Kenyan county data — not global averages. Nakuru maize behaves differently to Kitui maize. The predictions reflect that.
+            </p>
+          </FadeIn>
+          <div className="crop-tabs">
+            {SUPPORTED_CROPS.map((c, i) => (
+              <button key={i} className={`crop-tab${activeCrop === i ? ' active' : ''}`} onClick={() => setActiveCrop(i)}>
+                {c.emoji} {c.name}
+              </button>
+            ))}
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+          <FadeIn>
+            <div className="crop-detail">
+              <div className="crop-emoji-wrap">{SUPPORTED_CROPS[activeCrop].emoji}</div>
+              <div>
+                <div className="crop-name">{SUPPORTED_CROPS[activeCrop].name}</div>
+                <div className="crop-meta-row">
+                  <div>
+                    <div className="crop-meta-label">Growing season</div>
+                    <div className="crop-meta-val">{SUPPORTED_CROPS[activeCrop].season}</div>
+                  </div>
+                  <div>
+                    <div className="crop-meta-label">Kenya avg yield</div>
+                    <div className="crop-meta-val">{SUPPORTED_CROPS[activeCrop].yield}</div>
+                  </div>
+                </div>
+                <div className="crop-check"><span className="crop-check-icon">✓</span>Yield estimate using your soil pH, moisture, and organic carbon</div>
+                <div className="crop-check"><span className="crop-check-icon">✓</span>Net profit after fertilizer cost and local market price</div>
+                <div className="crop-check"><span className="crop-check-icon">✓</span>Harvest window from your planting date</div>
+                <div className="crop-check"><span className="crop-check-icon">✓</span>Risk flags for weather and soil conditions before you plant</div>
+                <div className="crop-check"><span className="crop-check-icon">✓</span>AI recommendations specific to your inputs</div>
+                <div style={{ marginTop: '1.5rem' }}>
+                  <Link href="/signup" className="btn-primary">
+                    Run a prediction for {SUPPORTED_CROPS[activeCrop].name} →
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section id="how" className="section">
+        <div className="section-inner">
+          <FadeIn>
+            <span className="section-tag">How it works</span>
+            <h2 className="section-title">Three inputs.<br />One clear answer.</h2>
+            <p className="section-sub">
+              No complicated setup. No guesswork. Enter your details and see the numbers.
+            </p>
+          </FadeIn>
+          <div className="steps">
             {[
               {
-                quote: "I used the yield estimate to figure out storage space. Saved me from scrambling at harvest time.",
-                name: "Jane M., Nakuru",
-                delay: "0s"
+                n: '1',
+                title: 'Enter your farm details',
+                body: 'Your crop, location, planting date, and soil readings. Soil pH and moisture testers cost under 1,000 shillings at any agro-vet.',
               },
               {
-                quote: "The profit numbers helped me choose between coffee and maize. Coffee looked better on paper but maize was safer.",
-                name: "Peter K., Kiambu",
-                delay: "0.1s"
-              }
-            ].map((testimonial, idx) => (
-              <div 
-                key={idx}
-                className="bg-white p-10 rounded-2xl border-2 border-earth-200 shadow-soft hover:shadow-lifted transition-all duration-300 animate-slide-up"
-                style={{ animationDelay: testimonial.delay, opacity: 0 }}
-              >
-                <div className="text-sage-600 mb-6">
-                  <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 32 32">
-                    <path d="M10 8c-3.3 0-6 2.7-6 6v10h10V14h-6c0-2.2 1.8-4 4-4V8zm14 0c-3.3 0-6 2.7-6 6v10h10V14h-6c0-2.2 1.8-4 4-4V8z" />
-                  </svg>
+                n: '2',
+                title: 'The model runs on your data',
+                body: 'XGBoost compares your inputs against 10 years of local weather and soil data from your region. Patterns from your specific county, not global averages.',
+              },
+              {
+                n: '3',
+                title: 'You get numbers to plan with',
+                body: 'Expected yield, net profit after costs, harvest window, and any soil or weather risks worth knowing about before you plant.',
+              },
+            ].map((s, i) => (
+              <FadeIn key={i} delay={i * 100}>
+                <div className="step">
+                  <div className="step-num">{s.n}</div>
+                  <div className="step-title">{s.title}</div>
+                  <div className="step-body">{s.body}</div>
                 </div>
-                <p className="text-lg text-earth-700 mb-6 leading-relaxed italic">{testimonial.quote}</p>
-                <p className="font-semibold text-earth-900">— {testimonial.name}</p>
-              </div>
+              </FadeIn>
             ))}
           </div>
         </div>
       </section>
 
-      {/* About Section */}
-      <section className="py-24 bg-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-sage-50 to-transparent" />
-        
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-            <div className="animate-slide-up" style={{ animationDelay: '0.1s', opacity: 0 }}>
-              <h2 className="text-5xl md:text-6xl font-serif font-bold text-earth-900 mb-8 leading-tight">
-                Built for Kenyan farmers
-              </h2>
-              <div className="space-y-6 text-lg text-earth-700 leading-relaxed">
-                <p>
-                  Most Kenyan farmers plan crops based on last season's results or advice from neighbors.
-                </p>
-                <p>
-                  This tool gives you another data point: what to expect based on your soil, weather, and planting schedule.
-                </p>
-              </div>
-            </div>
-            <div className="relative animate-scale-in" style={{ animationDelay: '0.2s', opacity: 0 }}>
-              <div className="bg-gradient-to-br from-sage-100 to-earth-100 rounded-3xl p-16 border-2 border-sage-300 relative overflow-hidden">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(93,167,95,0.1),transparent)]" />
-                <Sprout className="text-sage-600 mx-auto relative z-10" size={180} strokeWidth={1.5} />
-              </div>
-            </div>
+      {/* TESTIMONIALS */}
+      <section className="section testimonials-bg">
+        <div className="section-inner">
+          <FadeIn>
+            <span className="section-tag">From farmers using CropAI</span>
+            <h2 className="section-title">What changed for them</h2>
+            <p className="section-sub">
+              Not success stories. Honest accounts of one decision they made differently.
+            </p>
+          </FadeIn>
+          <div className="testimonial-grid">
+            {TESTIMONIALS.map((t, i) => (
+              <FadeIn key={i} delay={i * 100}>
+                <div className="testimonial-card">
+                  <p className="testimonial-quote">{t.quote}</p>
+                  <div className="testimonial-name">{t.name}</div>
+                  <div className="testimonial-meta">{t.location} · {t.crop}</div>
+                </div>
+              </FadeIn>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-24 bg-gradient-to-br from-sage-600 to-sage-700 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-10 left-10 w-96 h-96 bg-white rounded-full blur-3xl" />
-          <div className="absolute bottom-10 right-10 w-80 h-80 bg-terracotta-300 rounded-full blur-3xl" />
-        </div>
-        
-        <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
-          <h2 className="text-5xl md:text-6xl font-serif font-bold text-white mb-8 leading-tight">
-            Try it out
-          </h2>
-          <p className="text-xl md:text-2xl text-sage-100 mb-12 leading-relaxed max-w-2xl mx-auto">
-            Create an account and run your first prediction.
+      {/* CTA */}
+      <section className="cta-section">
+        <FadeIn>
+          <h2>Your next planting season<br />starts with a number</h2>
+          <p>
+            Create an account, enter your crop and location, and see what the data says. Takes about three minutes.
           </p>
-          <Link href="/signup">
-            <Button size="lg" variant="secondary" className="shadow-xl hover:shadow-2xl transition-all bg-white text-sage-800 hover:bg-earth-50 group">
-              <span className="text-lg">Get Started</span>
-              <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" />
-            </Button>
-          </Link>
-        </div>
+          <Link href="/signup" className="btn-white">Get started — it is free</Link>
+        </FadeIn>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-earth-900 text-earth-300 py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <Wheat className="text-sage-400" size={28} />
-              <span className="text-2xl font-serif font-bold text-white">CropAI Kenya</span>
-            </div>
-            <p className="mb-8 text-earth-400">© 2025 CropAI Kenya. All rights reserved.</p>
-            <div className="flex justify-center gap-8 text-sm">
-              <a href="#" className="hover:text-white transition">Privacy</a>
-              <a href="#" className="hover:text-white transition">Terms</a>
-              <a href="mailto:support@cropai-kenya.com" className="hover:text-white transition">Contact</a>
-            </div>
+      {/* FOOTER */}
+      <footer>
+        <div className="footer-inner">
+          <div className="footer-logo">🌱 CropAI Kenya</div>
+          <div className="footer-links">
+            <a href="#" className="footer-link">Privacy</a>
+            <a href="#" className="footer-link">Terms</a>
+            <a href="mailto:support@cropai-kenya.com" className="footer-link">Contact</a>
+          </div>
+          <div style={{ fontFamily: 'Nunito Sans, sans-serif', fontSize: '0.78rem' }}>
+            © 2025 CropAI Kenya
           </div>
         </div>
       </footer>
