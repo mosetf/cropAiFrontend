@@ -4,38 +4,38 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 
 const SUPPORTED_CROPS = [
-  { name: 'Maize', season: 'March – Aug', yield: '2.1 t/ha avg', emoji: '🌽' },
-  { name: 'Beans', season: 'Oct – Jan', yield: '0.9 t/ha avg', emoji: '🫘' },
-  { name: 'Wheat', season: 'March – July', yield: '2.8 t/ha avg', emoji: '🌾' },
-  { name: 'Sorghum', season: 'March – Aug', yield: '1.4 t/ha avg', emoji: '🌿' },
-  { name: 'Coffee', season: 'Oct – Feb', yield: '0.6 t/ha avg', emoji: '☕' },
-  { name: 'Tea', season: 'Year-round', yield: '2.5 t/ha avg', emoji: '🍃' },
-  { name: 'Potatoes', season: 'March – June', yield: '8.2 t/ha avg', emoji: '🥔' },
-  { name: 'Cassava', season: 'March – Oct', yield: '10.1 t/ha avg', emoji: '🌱' },
-  { name: 'Rice', season: 'April – Sept', yield: '3.1 t/ha avg', emoji: '🌾' },
+  { name: 'Maize', season: 'March – Aug', yield: '2.1 t/ha avg', emoji: 'Maize' },
+  { name: 'Beans', season: 'Oct – Jan', yield: '0.9 t/ha avg', emoji: 'Beans' },
+  { name: 'Wheat', season: 'March – July', yield: '2.8 t/ha avg', emoji: 'Wheat' },
+  { name: 'Sorghum', season: 'March – Aug', yield: '1.4 t/ha avg', emoji: 'Sorghum' },
+  { name: 'Coffee', season: 'Oct – Feb', yield: '0.6 t/ha avg', emoji: 'Coffee' },
+  { name: 'Tea', season: 'Year-round', yield: '2.5 t/ha avg', emoji: 'Tea' },
+  { name: 'Potatoes', season: 'March – June', yield: '8.2 t/ha avg', emoji: 'Potato' },
+  { name: 'Cassava', season: 'March – Oct', yield: '10.1 t/ha avg', emoji: 'Cassava' },
+  { name: 'Rice', season: 'April – Sept', yield: '3.1 t/ha avg', emoji: 'Rice' },
 ];
 
 const PROBLEMS = [
   {
-    icon: '🌧️',
+    icon: 'Rainfall',
     title: 'You plant, but the rains fail',
     body: "Short rains, long rains — the timing shifts every season. You rely on what worked last year. But last year was different.",
     solution: 'CropAI pulls 10 years of rainfall data from your county and flags when your chosen planting date historically leads to low yields.',
   },
   {
-    icon: '📉',
+    icon: 'Yield',
     title: 'You spend on fertilizer, but yields stay low',
     body: "Fertilizer is expensive. You buy it, apply it, and still harvest less than your neighbor. Nobody tells you why.",
     solution: 'Enter your soil pH and moisture levels. The model tells you exactly how much fertilizer will make a difference for your crop and soil type.',
   },
   {
-    icon: '💸',
+    icon: 'Price',
     title: 'You sell at harvest — always at the lowest price',
     body: "Everyone harvests in May. Everyone sells in May. Prices drop. You needed to know your harvest window three months ago.",
     solution: 'The system calculates your likely harvest window from your planting date so you can plan storage and time your sale better.',
   },
   {
-    icon: '🤷',
+    icon: 'Crop choice',
     title: 'You chose the wrong crop for your land',
     body: "Coffee looks like better money than maize. But your altitude, rainfall, and soil tell a different story. You find out after two seasons.",
     solution: 'Compare yield and profit estimates across crops before you plant. Put numbers on the decision.',
