@@ -19,7 +19,6 @@ import {
   Users,
   Info,
   Thermometer,
-  Wind,
   Loader2,
 } from 'lucide-react';
 import { CropOption, LocationsGrouped } from '@/types';
