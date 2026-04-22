@@ -105,7 +105,7 @@ function PredictContent() {
         break;
       }
     }
-    if (!lat || !lon) return;
+    if (lat == null || lon == null) return;
 
     let cancelled = false;
     const fetchWeather = async () => {
