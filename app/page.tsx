@@ -4,15 +4,13 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 
 const SUPPORTED_CROPS = [
-  { name: 'Maize', season: 'March – Aug', yield: '2.1 t/ha avg', emoji: 'Maize' },
-  { name: 'Beans', season: 'Oct – Jan', yield: '0.9 t/ha avg', emoji: 'Beans' },
-  { name: 'Wheat', season: 'March – July', yield: '2.8 t/ha avg', emoji: 'Wheat' },
-  { name: 'Sorghum', season: 'March – Aug', yield: '1.4 t/ha avg', emoji: 'Sorghum' },
-  { name: 'Coffee', season: 'Oct – Feb', yield: '0.6 t/ha avg', emoji: 'Coffee' },
-  { name: 'Tea', season: 'Year-round', yield: '2.5 t/ha avg', emoji: 'Tea' },
-  { name: 'Potatoes', season: 'March – June', yield: '8.2 t/ha avg', emoji: 'Potato' },
-  { name: 'Cassava', season: 'March – Oct', yield: '10.1 t/ha avg', emoji: 'Cassava' },
-  { name: 'Rice', season: 'April – Sept', yield: '3.1 t/ha avg', emoji: 'Rice' },
+  { name: 'Maize', season: 'March – Aug', emoji: 'Maize' },
+  { name: 'Beans', season: 'Oct – Jan', emoji: 'Beans' },
+  { name: 'Wheat', season: 'March – July', emoji: 'Wheat' },
+  { name: 'Sorghum', season: 'March – Aug', emoji: 'Sorghum' },
+  { name: 'Coffee', season: 'Oct – Feb', emoji: 'Coffee' },
+  { name: 'Tea', season: 'Year-round', emoji: 'Tea' },
+  { name: 'Potatoes', season: 'March – June', emoji: 'Potato' },
 ];
 
 const PROBLEMS = [
@@ -20,13 +18,13 @@ const PROBLEMS = [
     icon: 'Rainfall',
     title: 'You plant, but the rains fail',
     body: "Short rains, long rains — the timing shifts every season. You rely on what worked last year. But last year was different.",
-    solution: 'CropAI pulls 10 years of rainfall data from your county and flags when your chosen planting date historically leads to low yields.',
+    solution: 'CropAI uses the current weather and forecast for your county, with your planting date, and flags rainfall or temperature conditions that put the expected yield at risk.',
   },
   {
     icon: 'Yield',
     title: 'You spend on fertilizer, but yields stay low',
     body: "Fertilizer is expensive. You buy it, apply it, and still harvest less than your neighbor. Nobody tells you why.",
-    solution: 'Enter your soil pH and moisture levels. The model tells you exactly how much fertilizer will make a difference for your crop and soil type.',
+    solution: 'Enter your soil pH and moisture levels. The model estimates how your fertilizer amount and soil conditions affect the expected yield for your crop.',
   },
   {
     icon: 'Price',
@@ -42,18 +40,18 @@ const PROBLEMS = [
   },
 ];
 
-const TESTIMONIALS = [
+const LIMITS = [
   {
-    quote: "Last year I planted maize too late because I was waiting for the land to dry. The system showed me that planting two weeks earlier — even in slightly wet soil — gives better results in Eldoret. This season I tried it. Night and day.",
-    name: 'Peter Cheruiyot',
-    location: 'Eldoret, Uasin Gishu',
-    crop: 'Maize',
+    title: 'An estimate, not a forecast',
+    body: 'Yields come from machine-learning models whose accuracy has not been independently validated yet. Treat the numbers as a starting point and check them against local advice from your extension officer or agro-vet.',
   },
   {
-    quote: "I was spending 8,000 shillings on fertilizer per acre and wondering why yields were flat. Turns out my soil pH was wrong for beans. The tool told me to lime the soil first. Simple fix I had never heard about.",
-    name: 'Grace Wambui',
-    location: 'Muranga, Central',
-    crop: 'Beans',
+    title: 'It can fall back to defaults',
+    body: 'If live weather or the AI advice service is unavailable, the app uses default weather values and rule-based advice. The result page tells you when this happened.',
+  },
+  {
+    title: 'Some inputs are assumed',
+    body: 'Soil texture, market price and labour cost use fixed defaults unless you override them, so profit figures are rough. The yield range shown is a simple margin around the estimate, not a statistical interval.',
   },
 ];
 
@@ -351,7 +349,7 @@ export default function Home() {
         .testimonials-bg .section-tag { color: #A8D5A2; }
         .testimonials-bg .section-title { color: white; }
         .testimonials-bg .section-sub { color: rgba(255,255,255,0.6); }
-        .testimonial-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; margin-top: 2.5rem; }
+        .testimonial-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.4rem; margin-top: 2.5rem; }
         .testimonial-card {
           background: rgba(255,255,255,0.07); border-radius: 14px; padding: 1.8rem;
           border: 1px solid rgba(255,255,255,0.09);
@@ -504,9 +502,9 @@ export default function Home() {
       <div className="stats-bar">
         <div className="stats-bar-inner">
           {[
-            { val: '9 crops', lbl: 'supported across Kenya' },
-            { val: '10 years', lbl: 'of weather data per county' },
-            { val: '40+ regions', lbl: 'with local soil data' },
+            { val: '7 crops', lbl: 'with yield models' },
+            { val: '46 counties', lbl: 'to choose from' },
+            { val: 'Live weather', lbl: 'current conditions and forecast' },
             { val: 'Free', lbl: 'to get started' },
           ].map(s => (
             <div key={s.val} className="stat-bar-item">
@@ -549,9 +547,9 @@ export default function Home() {
         <div className="section-inner">
           <FadeIn>
             <span className="section-tag">Supported crops</span>
-            <h2 className="section-title">Nine crops, all major<br />Kenyan growing regions</h2>
+            <h2 className="section-title">Seven crops,<br />46 Kenyan counties</h2>
             <p className="section-sub">
-              The model was trained on Kenyan county data — not global averages. Nakuru maize behaves differently to Kitui maize. The predictions reflect that.
+              Pick your crop and county. The estimate uses that county&apos;s location and elevation together with current weather and the soil details you enter.
             </p>
           </FadeIn>
           <div className="crop-tabs">
@@ -568,16 +566,12 @@ export default function Home() {
                 <div className="crop-name">{SUPPORTED_CROPS[activeCrop].name}</div>
                 <div className="crop-meta-row">
                   <div>
-                    <div className="crop-meta-label">Growing season</div>
+                    <div className="crop-meta-label">Typical season</div>
                     <div className="crop-meta-val">{SUPPORTED_CROPS[activeCrop].season}</div>
-                  </div>
-                  <div>
-                    <div className="crop-meta-label">Kenya avg yield</div>
-                    <div className="crop-meta-val">{SUPPORTED_CROPS[activeCrop].yield}</div>
                   </div>
                 </div>
                 <div className="crop-check"><span className="crop-check-icon">✓</span>Yield estimate using your soil pH, moisture, and organic carbon</div>
-                <div className="crop-check"><span className="crop-check-icon">✓</span>Net profit after fertilizer cost and local market price</div>
+                <div className="crop-check"><span className="crop-check-icon">✓</span>Rough profit estimate from default price and cost assumptions you can override</div>
                 <div className="crop-check"><span className="crop-check-icon">✓</span>Harvest window from your planting date</div>
                 <div className="crop-check"><span className="crop-check-icon">✓</span>Risk flags for weather and soil conditions before you plant</div>
                 <div className="crop-check"><span className="crop-check-icon">✓</span>AI recommendations specific to your inputs</div>
@@ -612,7 +606,7 @@ export default function Home() {
               {
                 n: '2',
                 title: 'The model runs on your data',
-                body: 'XGBoost compares your inputs against 10 years of local weather and soil data from your region. Patterns from your specific county, not global averages.',
+                body: 'A machine-learning model (XGBoost) combines your inputs with the current weather and forecast for your county to estimate the yield.',
               },
               {
                 n: '3',
@@ -632,23 +626,22 @@ export default function Home() {
         </div>
       </section>
 
-      {/* TESTIMONIALS */}
+      {/* LIMITS */}
       <section className="section testimonials-bg">
         <div className="section-inner">
           <FadeIn>
-            <span className="section-tag">From farmers using CropAI</span>
-            <h2 className="section-title">What changed for them</h2>
+            <span className="section-tag">Before you rely on it</span>
+            <h2 className="section-title">What CropAI can and cannot tell you</h2>
             <p className="section-sub">
-              Not success stories. Honest accounts of one decision they made differently.
+              CropAI is a working prototype. Here is what to keep in mind when you read a result.
             </p>
           </FadeIn>
           <div className="testimonial-grid">
-            {TESTIMONIALS.map((t, i) => (
+            {LIMITS.map((t, i) => (
               <FadeIn key={i} delay={i * 100}>
                 <div className="testimonial-card">
-                  <p className="testimonial-quote">{t.quote}</p>
-                  <div className="testimonial-name">{t.name}</div>
-                  <div className="testimonial-meta">{t.location} · {t.crop}</div>
+                  <div className="testimonial-name" style={{ marginBottom: '0.7rem' }}>{t.title}</div>
+                  <p className="testimonial-quote" style={{ fontStyle: 'normal', marginBottom: 0 }}>{t.body}</p>
                 </div>
               </FadeIn>
             ))}
