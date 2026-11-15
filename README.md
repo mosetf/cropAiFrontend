@@ -1,105 +1,72 @@
-# CropAI Kenya - Frontend
+# CropAI Kenya: web front end
 
-CropAI Kenya is a web-based platform designed to empower Kenyan farmers with data-driven crop yield forecasts. By leveraging local weather patterns, soil data, and crop information, the platform provides actionable insights to improve farming outcomes and profitability.
+Next.js front end for CropAI Kenya. A farmer signs up, picks a crop and a Kenyan county, enters planting date, soil values and fertiliser use, and sees a predicted yield, harvest window, rough profit estimate, risk level and advice.
 
-## Core Development Principles
+The API it talks to is in a separate repository: [`mosetf/CropAiBackend`](https://github.com/mosetf/CropAiBackend). The estimates are produced there; see that README for how they are made and their limitations. This is a working prototype, so treat results as illustrative.
 
-### DRY (Don't Repeat Yourself)
-Always follow DRY principles to ensure code reuse and maintainability. Extract common logic into helper functions or utilities rather than duplicating code.
+## Tech stack
 
-### Git rules
-Never commit code without user approval.
+- Next.js 15 (App Router), React 18, TypeScript
+- Tailwind CSS 3
+- Zustand (auth state), TanStack React Query, Axios
+- Lucide icons, Crimson Pro and DM Sans fonts (via Fontsource)
 
-### PEP 8 Compliance
-Strictly adhere to PEP 8 standards for Python and Django code formatting and style.
+## Pages
 
-### Methodological Workflow
-1. Plan before implementing - Never implement a solution without proper planning
-2. Diagnose before fixing - Never fix a bug without proper diagnosis
-3. No guessing - Base decisions on analysis, not assumptions
+| Route | Purpose |
+|---|---|
+| `/` | Landing page |
+| `/signup`, `/login` | Account creation and sign-in (JWT) |
+| `/dashboard` | List of the user's past predictions |
+| `/predict` | New prediction form (crops and locations are loaded from the API) |
+| `/results/[id]` | One prediction in detail, including a notice when fallback data was used |
+| `/sessions` | Active login sessions |
 
-### Testing Standards
-1. Always Write Tests - Write test using pytest suite cases for all new implementations and update existing tests for modifications. Note: we test endpoint behavior just how a normal user/frontend would use the endpoints.
-2. Test Like a User - Test core fixtures and functionality as a normal user would interact with the system.
-3. Verify Before Committing - Run relevant tests to ensure changes don't break existing functionality.
+API calls are made from `lib/api.ts`: Bearer token on each request, with automatic token refresh on a 401. An inactivity timer logs users out (`hooks/useInactivityTimer.ts`).
 
-### Code Hygiene
-1. Clean Up After Fixes - Remove debug statements, temporary files, and test artifacts after completing work.
-2. No Debug Artifacts - Remove print statements, commented code, and temporary variables before finalizing.
+## Local setup
 
-### Documentation Standards
-1. Minimalist Logic Comments - Only comment where logic is genuinely complex; avoid line-by-line commentary.
-2. Concise Docstrings - Use clear, short, and focused docstrings where applicable.
-3. README-First Approach - Document changes in the relevant app's README.md immediately.
-4. No Random Documentation Files - Provide summaries in conversation; only create documentation files when explicitly instructed or when there's no alternative.
-5. Well-Documented Code - Aim for high readability with minimal fluff.
+Requirements: Node.js 24.x (as declared in `package.json`; other recent versions may work with a warning) and npm.
 
-### Communication Standards
-1. No Emojis - Strictly avoid emojis in code, comments, or communication.
-2. Explicit Identification - Always indicate the option number at the start of responses or solutions.
+```bash
+git clone https://github.com/mosetf/cropAiFrontend.git
+cd cropAiFrontend
+npm ci
+echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
+npm run dev
+```
 
-## Features
+Open http://localhost:3000. You need the backend running at `NEXT_PUBLIC_API_URL` (default `http://localhost:8000`) for sign-up and predictions to work; the backend README explains how to start it.
 
-- Yield Estimation: Get accurate yield forecasts (kg/ha) based on crop type, location, planting date, and soil properties.
-- Profit Calculator: Compare expected income against planting and fertilizer costs to make informed financial decisions.
-- Historical Weather Data: Uses 10-year records of rainfall and temperature from specific Kenyan regions.
-- Farmer Dashboard: Track and manage past predictions to monitor progress over time.
-- Secure Authentication: User signup and login with JWT-based session management.
-- Automatic Session Management: Inactivity timer for enhanced security.
+Other commands: `npm run build` (production build), `npm start` (serve the build).
 
-## Tech Stack
+## Configuration
 
-- Framework: [Next.js 14](https://nextjs.org/) (App Router)
-- Language: [TypeScript](https://www.typescriptlang.org/)
-- Styling: [Tailwind CSS](https://tailwindcss.com/)
-- State Management: [Zustand](https://github.com/pmndrs/zustand)
-- Data Fetching: [Axios](https://axios-http.com/) & [TanStack React Query](https://tanstack.com/query/latest)
-- Icons: [Lucide React](https://lucide.dev/)
-- Fonts: [Crimson Pro](https://fontsource.org/fonts/crimson-pro) & [DM Sans](https://fontsource.org/fonts/dm-sans)
+| Variable | Purpose |
+|---|---|
+| `NEXT_PUBLIC_API_URL` | Base URL of the backend API. Falls back to `http://localhost:8000` if unset. |
 
-## Getting Started
+`.env.production.example` shows the production variables. Do not commit real values.
 
-### Prerequisites
+## Deployment
 
-- Node.js 18.x or higher
-- npm or yarn
+The front end is deployed on Vercel. Set `NEXT_PUBLIC_API_URL` in the Vercel project settings to the backend's public HTTPS URL; the backend must list the front end's origin in its `CORS_ALLOWED_ORIGINS`. A GitHub Actions workflow (`.github/workflows/build.yml`) checks that the project builds on every push and pull request; it does not deploy.
 
-### Installation
+## Project structure
 
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd cropAiFrontend
-   ```
+- `app/`: pages and layouts
+- `components/`: shared UI components
+- `hooks/`: custom hooks
+- `lib/`: API client
+- `store/`: Zustand auth store
+- `types/`: TypeScript types
+- `utils/`: route protection
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+## Known gaps
 
-3. Configure environment variables:
-   Create a .env.local file in the root directory (refer to .env.production.example for required variables):
-   ```bash
-   NEXT_PUBLIC_API_URL=http://localhost:8000
-   ```
-
-4. Run the development server:
-   ```bash
-   npm run dev
-   ```
-
-5. Open http://localhost:3000 in your browser.
-
-## Project Structure
-
-- app/: Next.js App Router pages and layouts.
-- components/: Reusable UI components (Buttons, Cards, Navbar, etc.).
-- hooks/: Custom React hooks (e.g., useInactivityTimer).
-- lib/: API client and configuration.
-- store/: Zustand state management for authentication.
-- types/: TypeScript interfaces and types.
-- utils/: Helper functions and route protection.
+- There are no automated tests and no ESLint configuration yet.
+- `npm audit` still reports two advisories in the PostCSS copy bundled with Next.js; fixing them requires upgrading to Next.js 16.
 
 ## License
 
-This project is private and intended for CropAI Kenya.
+Private project for CropAI Kenya.
