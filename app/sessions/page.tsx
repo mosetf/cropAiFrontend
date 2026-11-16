@@ -1,19 +1,34 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { AlertCircle, ChevronLeft, Laptop, Smartphone, Tablet, XCircle } from 'lucide-react';
 import { ProtectedRoute } from '@/utils/ProtectedRoute';
 import { useInactivityTimer } from '@/hooks/useInactivityTimer';
 import apiClient from '@/lib/api';
 import { UserSession } from '@/types';
-import Link from 'next/link';
-import { Navbar, Card, PageHeader, Button } from '@/components';
-import { ArrowLeft, Monitor, Smartphone, Tablet, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
+import AppNavbar from '@/components/AppNavbar';
+import { Button, PageHeader } from '@/components';
+
+function deviceIcon(session: UserSession) {
+  const hint = `${session.device_type ?? ''} ${session.device_name ?? ''}`.toLowerCase();
+  if (hint.includes('mobile') || hint.includes('phone') || hint.includes('android') || hint.includes('iphone')) {
+    return <Smartphone size={19} />;
+  }
+  if (hint.includes('tablet') || hint.includes('ipad')) return <Tablet size={19} />;
+  return <Laptop size={19} />;
+}
+
+function lastActive(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
 
 function SessionsContent() {
   const [sessions, setSessions] = useState<UserSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-
   useInactivityTimer();
 
   useEffect(() => {
@@ -48,7 +63,6 @@ function SessionsContent() {
     if (!window.confirm('This will sign you out of all other devices. Continue?')) {
       return;
     }
-
     try {
       await apiClient.delete('/api/v1/auth/sessions/');
       fetchSessions();
@@ -58,115 +72,84 @@ function SessionsContent() {
     }
   };
 
-  const getDeviceIcon = (deviceName: string) => {
-    const lower = deviceName.toLowerCase();
-    if (lower.includes('mobile') || lower.includes('phone') || lower.includes('android') || lower.includes('iphone')) {
-      return <Smartphone size={20} className="text-neutral-600" />;
-    }
-    if (lower.includes('tablet') || lower.includes('ipad')) {
-      return <Tablet size={20} className="text-neutral-600" />;
-    }
-    return <Monitor size={20} className="text-neutral-600" />;
-  };
-
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <Navbar showAuth />
-
-      <div className="max-w-5xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <Link 
-          href="/dashboard" 
-          className="inline-flex items-center gap-2 text-neutral-600 hover:text-neutral-900 mb-6 transition"
-        >
-          <ArrowLeft size={20} />
-          <span>Back to Dashboard</span>
+    <>
+      <AppNavbar />
+      <main className="mx-auto max-w-3xl px-4 pb-16 pt-6 sm:px-6">
+        <Link href="/dashboard" className="-ml-2 mb-4 inline-flex min-h-[44px] items-center gap-0.5 rounded-full px-2 text-[17px] font-medium text-accent">
+          <ChevronLeft size={22} aria-hidden="true" /> Home
         </Link>
 
         <PageHeader
-          title="Active Sessions"
-          description="Manage devices where you're signed in"
+          title="Active sessions"
+          description="The devices where you're signed in."
           action={
             sessions.length > 1 ? (
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={revokeAllOthers}
-                icon={<XCircle size={16} />}
-              >
-                Revoke All Others
+              <Button variant="danger" size="sm" onClick={revokeAllOthers} icon={<XCircle size={16} />}>
+                Sign out other devices
               </Button>
             ) : undefined
           }
         />
 
         {error && (
-          <div className="rounded-lg bg-red-50 border border-red-200 p-4 mb-6 flex items-start gap-3">
-            <AlertCircle className="text-red-600 flex-shrink-0 mt-0.5" size={20} />
-            <p className="text-sm text-red-800">{error}</p>
+          <div role="alert" className="mb-6 flex items-start gap-3 rounded-[14px] bg-bad-soft p-4 text-[15px] text-bad">
+            <AlertCircle className="mt-0.5 shrink-0" size={19} aria-hidden="true" />
+            <p>{error}</p>
           </div>
         )}
 
-        <Card padding="none">
-          {isLoading ? (
-            <p className="px-6 py-8 text-center text-neutral-500">Loading sessions...</p>
-          ) : sessions.length > 0 ? (
-            <ul className="divide-y divide-neutral-200">
-              {sessions.map((session) => (
-                <li key={session.id} className="px-6 py-5 hover:bg-neutral-50 transition">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-4 flex-1">
-                      <div className="mt-1">
-                        {getDeviceIcon(session.device_name)}
-                      </div>
-                      
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-base font-semibold text-neutral-900">
-                            {session.device_name}
-                          </h3>
-                          {session.is_current && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-primary-700 bg-primary-100 rounded-full">
-                              <CheckCircle2 size={12} />
-                              Current
-                            </span>
-                          )}
-                        </div>
-                        
-                        <div className="space-y-1">
-                          <p className="text-sm text-neutral-600">
-                            {session.browser} on {session.os}
-                          </p>
-                          <div className="flex items-center gap-4 text-xs text-neutral-500">
-                            <span>IP: {session.ip_address}</span>
-                            <span>Last active: {new Date(session.last_active).toLocaleString()}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {!session.is_current && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => revokeSession(session.id)}
-                        icon={<XCircle size={16} />}
-                      >
-                        Revoke
-                      </Button>
+        {isLoading ? (
+          <div className="group" aria-busy="true" aria-label="Loading sessions">
+            {[0, 1].map((i) => (
+              <div key={i} className="row">
+                <div className="skeleton h-9 w-9 rounded-lg" />
+                <div className="flex-1 space-y-2">
+                  <div className="skeleton h-4 w-32" />
+                  <div className="skeleton h-3 w-48" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : sessions.length > 0 ? (
+          <ul className="group">
+            {sessions.map((session) => (
+              <li key={session.id} className="row !items-start">
+                <span aria-hidden="true" className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-fill text-ink-2">
+                  {deviceIcon(session)}
+                </span>
+                <div className="row-label min-w-0">
+                  <p className="flex flex-wrap items-center gap-2 font-semibold">
+                    {session.device_name}
+                    {session.is_current && (
+                      <span className="rounded-full bg-good-soft px-2.5 py-0.5 text-[12px] font-semibold text-good">This device</span>
                     )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="px-6 py-12 text-center">
-              <Monitor size={48} className="mx-auto text-neutral-400 mb-4" />
-              <p className="text-neutral-600">No active sessions found</p>
+                  </p>
+                  {session.device_name !== `${session.browser} on ${session.os}` && (
+                    <p className="text-[15px] text-ink-2">{session.browser} on {session.os}</p>
+                  )}
+                  <p className="num mt-0.5 text-[13px] text-ink-3">
+                    Last active {lastActive(session.last_active)} · IP {session.ip_address}
+                  </p>
+                </div>
+                {!session.is_current && (
+                  <Button variant="ghost" size="sm" onClick={() => revokeSession(session.id)} className="shrink-0 whitespace-nowrap !text-bad hover:!bg-bad-soft">
+                    Sign out
+                  </Button>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          !error && (
+            <div className="group px-6 py-12 text-center">
+              <Laptop size={40} className="mx-auto mb-3 text-ink-3" aria-hidden="true" />
+              <p className="text-ink-2">No active sessions found.</p>
             </div>
-          )}
-        </Card>
-      </div>
-    </div>
+          )
+        )}
+      </main>
+    </>
   );
 }
 

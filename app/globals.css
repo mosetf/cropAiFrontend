@@ -288,6 +288,71 @@
     font-variant-numeric: tabular-nums;
   }
 
+  /* A whole row that is a link. */
+  .row-link {
+    text-decoration: none;
+    color: inherit;
+    transition: background-color 0.15s var(--ease);
+  }
+  .row-link:hover {
+    background: var(--fill);
+  }
+  .row-link:active {
+    background: var(--line);
+  }
+
+  /* Inline value controls for settings-style form rows (label left, control right). */
+  .control {
+    flex: 0 1 52%;
+    min-width: 0;
+    min-height: 36px;
+    padding: 0.25rem 0;
+    background: transparent;
+    border: 0;
+    outline: none;
+    font: inherit;
+    text-align: right;
+    color: var(--text-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .control:focus-visible {
+    color: var(--text);
+    box-shadow: 0 2px 0 0 var(--accent);
+    border-radius: 0;
+  }
+  .control-select {
+    -webkit-appearance: none;
+    appearance: none;
+    padding-right: 1.4rem;
+    text-align-last: right;
+    cursor: pointer;
+    background-repeat: no-repeat;
+    background-position: right 0.1rem center;
+    background-size: 0.9rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238e8e93' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 15 5 5 5-5M7 9l5-5 5 5'/%3E%3C/svg%3E");
+  }
+
+  /* Loading placeholder. */
+  .skeleton {
+    border-radius: 8px;
+    background: linear-gradient(90deg, var(--fill) 25%, var(--line) 37%, var(--fill) 63%);
+    background-size: 400% 100%;
+    animation: shimmer 1.4s ease infinite;
+  }
+  @keyframes shimmer {
+    0% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0 50%;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton {
+      animation: none;
+    }
+  }
+
   /* Text fields that live inside a .group, like iOS sign-in forms. */
   .field {
     width: 100%;

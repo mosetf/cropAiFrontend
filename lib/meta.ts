@@ -11,6 +11,17 @@ import type { CropOption, LocationOption, LocationsGrouped } from '@/types';
  * form empty instead of crashing the page.
  */
 
+/**
+ * Crops that have a trained model on the server. The backend's crop list also
+ * names cassava and rice, which have no model, so choosing them would fail.
+ */
+export const MODELLED_CROPS = ['maize', 'beans', 'wheat', 'sorghum', 'coffee', 'tea', 'potatoes'] as const;
+
+export function modelledCrops(list: CropOption[]): CropOption[] {
+  const supported = new Set<string>(MODELLED_CROPS);
+  return list.filter((c) => supported.has(c.value));
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
