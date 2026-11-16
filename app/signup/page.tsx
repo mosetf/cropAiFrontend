@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore, saveAuthCredentials } from '@/store/auth';
 import apiClient from '@/lib/api';
-import { ApiError } from '@/types';
+import { signupFailure } from '@/lib/errors';
 import Link from 'next/link';
 import { Sprout, AlertCircle, CheckCircle2, User, Mail, Lock } from 'lucide-react';
 import { Button } from '@/components';
@@ -77,24 +77,10 @@ export default function SignupPage() {
         router.push('/dashboard');
       }, 1500);
       
-    } catch (err: any) {
-      const errorData: ApiError = err.response?.data || {};
-      
-      if (err.response?.status === 429) {
-        setError('Too many requests. Please wait a few minutes and try again.');
-      } else {
-        if (errorData.email && Array.isArray(errorData.email)) {
-          setFieldErrors(prev => ({ ...prev, email: errorData.email![0] }));
-        }
-        if (errorData.password && Array.isArray(errorData.password)) {
-          setFieldErrors(prev => ({ ...prev, password: errorData.password![0] }));
-        }
-        if (errorData.password2 && Array.isArray(errorData.password2)) {
-          setFieldErrors(prev => ({ ...prev, password_confirm: errorData.password2![0] }));
-        }
-        
-        setError(errorData.detail || errorData.non_field_errors?.[0] || 'Registration failed. Please try again.');
-      }
+    } catch (err: unknown) {
+      const failure = signupFailure(err);
+      setFieldErrors(prev => ({ ...prev, ...failure.fieldErrors }));
+      setError(failure.message);
     } finally {
       setIsLoading(false);
     }
