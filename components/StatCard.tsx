@@ -26,63 +26,44 @@ const StatCard: React.FC<StatCardProps> = ({
   onClick,
   variant = 'default',
 }) => {
-  const variantStyles = {
-    default: 'bg-white',
-    primary: 'bg-primary-50 border-primary-200',
-    secondary: 'bg-neutral-50',
-  };
-  
-  const iconColorStyles = {
-    default: 'text-neutral-600',
-    primary: 'text-primary-600',
-    secondary: 'text-neutral-600',
-  };
-  
+  const tone = {
+    default: 'bg-fill text-ink-2',
+    primary: 'bg-accent-soft text-accent',
+    secondary: 'bg-fill text-ink-2',
+  }[variant];
+
   const content = (
-    <div className={`flex flex-col space-y-3 ${variantStyles[variant]}`}>
+    <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <span className={`flex-shrink-0 ${iconColorStyles[variant]}`}>{icon}</span>
+        <span aria-hidden="true" className={`grid h-9 w-9 place-items-center rounded-[10px] ${tone}`}>
+          {icon}
+        </span>
         {trend && (
-          <span className={`text-sm font-medium ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
-            {trend.isPositive ? '+' : ''}{trend.value}%
+          <span className={`text-[14px] font-semibold ${trend.isPositive ? 'text-good' : 'text-bad'}`}>
+            {trend.isPositive ? '+' : ''}
+            {trend.value}%
           </span>
         )}
       </div>
-      
+
       <div>
-        <p className="text-sm font-medium text-neutral-600 mb-1">{label}</p>
-        <p className="text-3xl font-bold text-neutral-900">{value}</p>
-        {description && (
-          <p className="text-sm text-neutral-500 mt-1">{description}</p>
-        )}
+        <p className="text-[13px] font-semibold uppercase tracking-[0.04em] text-ink-3">{label}</p>
+        <p className="num mt-1 text-[34px] font-bold leading-none tracking-[-0.035em] text-ink">{value}</p>
+        {description && <p className="mt-2 text-[15px] text-ink-2">{description}</p>}
       </div>
     </div>
   );
-  
+
   if (href) {
     return (
-      <Link href={href}>
-        <Card hover className={variantStyles[variant]}>
-          {content}
-        </Card>
+      <Link href={href} className="block">
+        <Card hover>{content}</Card>
       </Link>
     );
   }
-  
-  if (onClick) {
-    return (
-      <Card 
-        hover 
-        className={`cursor-pointer ${variantStyles[variant]}`}
-        onClick={onClick}
-      >
-        {content}
-      </Card>
-    );
-  }
-  
+
   return (
-    <Card className={variantStyles[variant]}>
+    <Card hover={!!onClick} onClick={onClick}>
       {content}
     </Card>
   );

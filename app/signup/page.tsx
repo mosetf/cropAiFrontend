@@ -2,23 +2,28 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { AlertCircle, Check } from 'lucide-react';
 import { useAuthStore, saveAuthCredentials } from '@/store/auth';
 import apiClient from '@/lib/api';
 import { signupFailure } from '@/lib/errors';
-import Link from 'next/link';
-import { Sprout, AlertCircle, CheckCircle2, User, Mail, Lock } from 'lucide-react';
 import { Button } from '@/components';
+import AuthShell from '@/components/AuthShell';
+
+type FieldName = 'email' | 'password' | 'password_confirm';
+
+const FIELD_ORDER: FieldName[] = ['email', 'password', 'password_confirm'];
 
 export default function SignupPage() {
   const router = useRouter();
   const setCredentials = useAuthStore((state) => state.setCredentials);
-  
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     password_confirm: '',
   });
-  
+
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -34,7 +39,7 @@ export default function SignupPage() {
 
   const validateForm = () => {
     const errors: Record<string, string> = {};
-    
+
     if (!formData.email) errors.email = 'Email is required';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       errors.email = 'Check your email format';
@@ -46,7 +51,7 @@ export default function SignupPage() {
     if (formData.password !== formData.password_confirm) {
       errors.password_confirm = 'Passwords don\'t match';
     }
-    
+
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -54,9 +59,9 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     if (!validateForm()) return;
-    
+
     setIsLoading(true);
 
     try {
@@ -69,14 +74,14 @@ export default function SignupPage() {
       // Backend returns access token and user immediately
       setCredentials(response.data, false);
       saveAuthCredentials(response.data, false);
-      
+
       setSuccess(true);
-      
+
       // Show success message briefly, then redirect
       setTimeout(() => {
         router.push('/dashboard');
       }, 1500);
-      
+
     } catch (err: unknown) {
       const failure = signupFailure(err);
       setFieldErrors(prev => ({ ...prev, ...failure.fieldErrors }));
@@ -88,116 +93,75 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen grain-texture bg-gradient-to-br from-sage-50 to-earth-50 flex items-center justify-center py-12 px-4">
-        <div className="max-w-md w-full">
-          <div className="bg-white rounded-2xl shadow-lifted border-2 border-sage-200 p-8 text-center animate-scale-in">
-            <div className="w-16 h-16 bg-sage-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle2 className="text-sage-600" size={32} />
-            </div>
-            <h2 className="text-3xl font-serif font-bold text-earth-900 mb-4">Account created</h2>
-            <p className="text-earth-600 mb-6">Your account has been created successfully. Redirecting to your dashboard...</p>
-            <div className="animate-spin h-8 w-8 border-4 border-sage-200 border-t-sage-600 rounded-full mx-auto"></div>
-          </div>
+      <AuthShell title="You're in" subtitle="Taking you to your dashboard…">
+        <div role="status" className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-good-soft text-good">
+          <Check size={34} strokeWidth={2.6} aria-hidden="true" />
         </div>
-      </div>
+      </AuthShell>
     );
   }
 
+  const inputProps = (name: FieldName, label: string, type: string, autoComplete: string) => ({
+    id: name,
+    name,
+    type,
+    autoComplete,
+    placeholder: label,
+    'aria-label': label,
+    'aria-invalid': fieldErrors[name] ? (true as const) : undefined,
+    'aria-describedby': fieldErrors[name] ? `${name}-error` : undefined,
+    className: `field ${fieldErrors[name] ? 'field-bad' : ''}`,
+    value: formData[name],
+    onChange: handleChange,
+  });
+
+  const visibleFieldErrors = FIELD_ORDER.filter((name) => fieldErrors[name]);
+
   return (
-    <div className="min-h-screen grain-texture bg-gradient-to-br from-sage-50 to-earth-50 flex items-center justify-center py-12 px-4">
-      <div className="max-w-md w-full animate-fade-in">
-        <div className="bg-white rounded-2xl shadow-lifted border-2 border-earth-200 p-8">
-          <div className="text-center mb-8">
-            <Link href="/" className="inline-flex items-center justify-center gap-3 text-sage-800 mb-4 group">
-              <Sprout size={36} className="transition-transform group-hover:rotate-12" />
-              <span className="text-3xl font-serif font-bold">CropAI Kenya</span>
-            </Link>
-            <h2 className="text-2xl font-serif font-bold text-earth-900 mb-2">Create your account</h2>
-            <p className="text-earth-600">Just email and password to get started</p>
-          </div>
-
-          {error && (
-            <div className="rounded-lg bg-red-50 border-2 border-red-200 p-4 mb-6 flex items-start gap-3">
-              <AlertCircle className="text-red-600 flex-shrink-0 mt-0.5" size={20} />
-              <p className="text-sm text-red-800">{error}</p>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label htmlFor="email" className="flex items-center gap-2 text-sm font-medium text-earth-900 mb-2">
-                <Mail size={16} />
-                Email <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                placeholder="Enter your email"
-                className={`w-full px-4 py-2.5 border-2 rounded-lg focus:ring-2 focus:ring-sage-500 focus:ring-opacity-20 text-earth-900 transition ${
-                  fieldErrors.email ? 'border-red-500' : 'border-earth-300 focus:border-sage-500'
-                }`}
-                value={formData.email}
-                onChange={handleChange}
-              />
-              {fieldErrors.email && <p className="mt-1 text-sm text-red-600">{fieldErrors.email}</p>}
-            </div>
-
-            <div>
-              <label htmlFor="password" className="flex items-center gap-2 text-sm font-medium text-earth-900 mb-2">
-                <Lock size={16} />
-                Password <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                placeholder="At least 8 characters"
-                className={`w-full px-4 py-2.5 border-2 rounded-lg focus:ring-2 focus:ring-sage-500 focus:ring-opacity-20 text-earth-900 transition ${
-                  fieldErrors.password ? 'border-red-500' : 'border-earth-300 focus:border-sage-500'
-                }`}
-                value={formData.password}
-                onChange={handleChange}
-              />
-              {fieldErrors.password && <p className="mt-1 text-sm text-red-600">{fieldErrors.password}</p>}
-            </div>
-
-            <div>
-              <label htmlFor="password_confirm" className="flex items-center gap-2 text-sm font-medium text-earth-900 mb-2">
-                <Lock size={16} />
-                Confirm Password <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="password_confirm"
-                name="password_confirm"
-                type="password"
-                required
-                placeholder="Re-enter your password"
-                className={`w-full px-4 py-2.5 border-2 rounded-lg focus:ring-2 focus:ring-sage-500 focus:ring-opacity-20 text-earth-900 transition ${
-                  fieldErrors.password_confirm ? 'border-red-500' : 'border-earth-300 focus:border-sage-500'
-                }`}
-                value={formData.password_confirm}
-                onChange={handleChange}
-              />
-              {fieldErrors.password_confirm && <p className="mt-1 text-sm text-red-600">{fieldErrors.password_confirm}</p>}
-            </div>
-
-            <Button type="submit" isLoading={isLoading} className="w-full shadow-md hover:shadow-lg">
-              {isLoading ? 'Creating account...' : 'Create Account'}
-            </Button>
-          </form>
-
-          <p className="mt-6 text-center text-sm text-earth-600">
-            Already have an account?{' '}
-            <Link href="/login" className="text-sage-700 hover:text-sage-800 font-medium transition">
-              Sign in
-            </Link>
-          </p>
+    <AuthShell
+      title="Create your account"
+      subtitle="Just an email and a password to get started."
+      footer={
+        <>
+          Already have an account?{' '}
+          <Link href="/login" className="font-semibold text-accent hover:underline hover:underline-offset-4">
+            Sign in
+          </Link>
+        </>
+      }
+    >
+      {error && (
+        <div role="alert" className="mb-5 flex items-start gap-3 rounded-[14px] bg-bad-soft p-4 text-[15px] text-bad">
+          <AlertCircle className="mt-0.5 shrink-0" size={19} aria-hidden="true" />
+          <p>{error}</p>
         </div>
-      </div>
-    </div>
+      )}
+
+      <form onSubmit={handleSubmit} noValidate className="space-y-3">
+        <div className="group">
+          <input {...inputProps('email', 'Email', 'email', 'email')} />
+          <div className="mx-4 [border-top:0.5px_solid_var(--line)]" />
+          <input {...inputProps('password', 'Password', 'password', 'new-password')} />
+          <div className="mx-4 [border-top:0.5px_solid_var(--line)]" />
+          <input {...inputProps('password_confirm', 'Confirm password', 'password', 'new-password')} />
+        </div>
+
+        {visibleFieldErrors.length > 0 ? (
+          <ul className="space-y-1 px-1 text-[14px] text-bad">
+            {visibleFieldErrors.map((name) => (
+              <li key={name} id={`${name}-error`}>{fieldErrors[name]}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="px-1 text-[13px] text-ink-3">Use at least 8 characters.</p>
+        )}
+
+        <div className="pt-3">
+          <Button type="submit" size="lg" isLoading={isLoading} className="w-full">
+            {isLoading ? 'Creating account…' : 'Create account'}
+          </Button>
+        </div>
+      </form>
+    </AuthShell>
   );
 }

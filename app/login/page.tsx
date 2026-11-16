@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { AlertCircle } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import apiClient from '@/lib/api';
 import { loginErrorMessage } from '@/lib/errors';
-import Link from 'next/link';
-import { Sprout, AlertCircle } from 'lucide-react';
 import { Button } from '@/components';
+import AuthShell from '@/components/AuthShell';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -42,97 +43,69 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full">
-        <div className="bg-white rounded-xl shadow-soft border border-neutral-200 p-8">
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-2 text-primary-700 mb-3">
-              <Sprout size={32} />
-              <span className="text-2xl font-bold">CropAI Kenya</span>
-            </div>
-            <p className="text-neutral-600">Sign in to your account</p>
-          </div>
-
-          {error && (
-            <div className="rounded-lg bg-red-50 border border-red-200 p-4 mb-6 flex items-start gap-3">
-              <AlertCircle className="text-red-600 shrink-0 mt-0.5" size={20} />
-              <p className="text-sm text-red-800">{error}</p>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-neutral-900 mb-2"
-              >
-                Email
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                placeholder="Enter your email"
-                className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-opacity-20 text-neutral-900 placeholder-neutral-400 transition"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-neutral-900 mb-2"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                placeholder="Enter your password"
-                className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-opacity-20 text-neutral-900 placeholder-neutral-400 transition"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-
-            <div className="flex items-center">
-              <input
-                id="remember-me"
-                type="checkbox"
-                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-neutral-300 rounded"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-              />
-              <label
-                htmlFor="remember-me"
-                className="ml-2 block text-sm text-neutral-700"
-              >
-                Remember me for 30 days
-              </label>
-            </div>
-
-            <Button type="submit" isLoading={isLoading} className="w-full">
-              {isLoading ? 'Signing in...' : 'Sign in'}
-            </Button>
-          </form>
-
-          <p className="mt-6 text-center text-sm text-earth-600">
-            New to CropAI?{' '}
-            <Link
-              href="/signup"
-              className="text-sage-700 hover:text-sage-800 font-medium transition"
-            >
-              Create an account
-            </Link>
-          </p>
+    <AuthShell
+      title="Sign in"
+      subtitle="Welcome back. Pick up where you left off."
+      footer={
+        <>
+          New to CropAI?{' '}
+          <Link href="/signup" className="font-semibold text-accent hover:underline hover:underline-offset-4">
+            Create an account
+          </Link>
+        </>
+      }
+    >
+      {error && (
+        <div role="alert" className="mb-5 flex items-start gap-3 rounded-[14px] bg-bad-soft p-4 text-[15px] text-bad">
+          <AlertCircle className="mt-0.5 shrink-0" size={19} aria-hidden="true" />
+          <p>{error}</p>
         </div>
-      </div>
-    </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="group">
+          <label htmlFor="email" className="sr-only">Email</label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            placeholder="Email"
+            className="field"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <div className="mx-4 [border-top:0.5px_solid_var(--line)]" />
+          <label htmlFor="password" className="sr-only">Password</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            required
+            placeholder="Password"
+            className="field"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
+
+        <label htmlFor="remember-me" className="flex min-h-[44px] cursor-pointer items-center gap-3 px-1 text-[15px] text-ink-2">
+          <input
+            id="remember-me"
+            type="checkbox"
+            className="h-5 w-5 rounded-md [accent-color:var(--accent)]"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+          />
+          Keep me signed in for 30 days
+        </label>
+
+        <Button type="submit" size="lg" isLoading={isLoading} className="w-full">
+          {isLoading ? 'Signing in…' : 'Sign in'}
+        </Button>
+      </form>
+    </AuthShell>
   );
 }

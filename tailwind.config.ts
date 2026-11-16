@@ -1,5 +1,10 @@
 import type { Config } from "tailwindcss";
 
+const ramp = (name: string) =>
+  Object.fromEntries(
+    [50, 100, 200, 300, 400, 500, 600, 700, 800, 900].map((step) => [step, `var(--color-${name}-${step})`])
+  );
+
 const config: Config = {
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
@@ -8,72 +13,35 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        earth: {
-          50: 'var(--color-earth-50)',
-          100: 'var(--color-earth-100)',
-          200: 'var(--color-earth-200)',
-          300: 'var(--color-earth-300)',
-          400: 'var(--color-earth-400)',
-          500: 'var(--color-earth-500)',
-          600: 'var(--color-earth-600)',
-          700: 'var(--color-earth-700)',
-          800: 'var(--color-earth-800)',
-          900: 'var(--color-earth-900)',
-        },
-        sage: {
-          50: 'var(--color-sage-50)',
-          100: 'var(--color-sage-100)',
-          200: 'var(--color-sage-200)',
-          300: 'var(--color-sage-300)',
-          400: 'var(--color-sage-400)',
-          500: 'var(--color-sage-500)',
-          600: 'var(--color-sage-600)',
-          700: 'var(--color-sage-700)',
-          800: 'var(--color-sage-800)',
-          900: 'var(--color-sage-900)',
-        },
-        terracotta: {
-          50: 'var(--color-terracotta-50)',
-          100: 'var(--color-terracotta-100)',
-          200: 'var(--color-terracotta-200)',
-          300: 'var(--color-terracotta-300)',
-          400: 'var(--color-terracotta-400)',
-          500: 'var(--color-terracotta-500)',
-          600: 'var(--color-terracotta-600)',
-          700: 'var(--color-terracotta-700)',
-          800: 'var(--color-terracotta-800)',
-          900: 'var(--color-terracotta-900)',
-        },
-        primary: {
-          50: 'var(--color-sage-50)',
-          100: 'var(--color-sage-100)',
-          200: 'var(--color-sage-200)',
-          300: 'var(--color-sage-300)',
-          400: 'var(--color-sage-400)',
-          500: 'var(--color-sage-500)',
-          600: 'var(--color-sage-600)',
-          700: 'var(--color-sage-700)',
-          800: 'var(--color-sage-800)',
-          900: 'var(--color-sage-900)',
-          950: '#0f120e',
-        },
-        neutral: {
-          50: 'var(--color-earth-50)',
-          100: 'var(--color-earth-100)',
-          200: 'var(--color-earth-200)',
-          300: 'var(--color-earth-300)',
-          400: 'var(--color-earth-400)',
-          500: 'var(--color-earth-500)',
-          600: 'var(--color-earth-600)',
-          700: 'var(--color-earth-700)',
-          800: 'var(--color-earth-800)',
-          900: 'var(--color-earth-900)',
-          950: '#161310',
-        },
+        // Semantic tokens (see app/globals.css).
+        bg: 'var(--bg)',
+        surface: 'var(--surface)',
+        fill: 'var(--fill)',
+        line: 'var(--line)',
+        ink: { DEFAULT: 'var(--text)', 2: 'var(--text-2)', 3: 'var(--text-3)' },
+        accent: { DEFAULT: 'var(--accent)', strong: 'var(--accent-strong)', soft: 'var(--accent-soft)' },
+        'on-accent': 'var(--on-accent)',
+        good: { DEFAULT: 'var(--good)', soft: 'var(--good-soft)' },
+        warn: { DEFAULT: 'var(--warn)', soft: 'var(--warn-soft)' },
+        bad: { DEFAULT: 'var(--bad)', soft: 'var(--bad-soft)' },
+        maize: 'var(--maize)',
+
+        // Legacy ramps, kept so existing pages keep working.
+        earth: ramp('earth'),
+        sage: ramp('sage'),
+        terracotta: ramp('terracotta'),
+        primary: { ...ramp('sage'), 950: '#06210f' },
+        neutral: { ...ramp('earth'), 950: '#000000' },
       },
       fontFamily: {
-        sans: ['DM Sans', 'system-ui', 'sans-serif'],
-        serif: ['Crimson Pro', 'Georgia', 'serif'],
+        // One family everywhere: the system font (SF Pro on Apple devices).
+        sans: ['var(--font)'],
+        serif: ['var(--font)'],
+        display: ['var(--font)'],
+      },
+      borderRadius: {
+        squircle: '22px',
+        sheet: '28px',
       },
       spacing: {
         '18': '4.5rem',
@@ -81,8 +49,13 @@ const config: Config = {
         '128': '32rem',
       },
       boxShadow: {
-        'soft': '0 2px 15px -3px rgba(61, 49, 38, 0.08), 0 10px 20px -2px rgba(61, 49, 38, 0.05)',
-        'lifted': '0 20px 40px -10px rgba(61, 49, 38, 0.15)',
+        soft: 'var(--shadow-1)',
+        lifted: 'var(--shadow-2)',
+        card: 'var(--shadow-1)',
+        float: 'var(--shadow-2)',
+      },
+      transitionTimingFunction: {
+        apple: 'cubic-bezier(0.22, 1, 0.36, 1)',
       },
       animation: {
         'fade-in': 'fadeIn 0.6s ease-out forwards',
