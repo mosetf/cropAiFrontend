@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ProtectedRoute } from '@/utils/ProtectedRoute';
 import { useInactivityTimer } from '@/hooks/useInactivityTimer';
 import apiClient from '@/lib/api';
+import { parseCrops, groupLocations } from '@/lib/meta';
 import Link from 'next/link';
 import AppNavbar from '@/components/AppNavbar';
 import { CropOption, LocationsGrouped } from '@/types';
@@ -34,7 +35,7 @@ function PredictContent() {
 
   useEffect(() => {
     Promise.all([apiClient.get('/api/v1/meta/crops/'), apiClient.get('/api/v1/meta/locations/')])
-      .then(([cr, lo]) => { setCrops(cr.data); setLocationsGrouped(lo.data); })
+      .then(([cr, lo]) => { setCrops(parseCrops(cr.data)); setLocationsGrouped(groupLocations(lo.data)); })
       .catch(() => {})
       .finally(() => setMetaLoading(false));
   }, []);

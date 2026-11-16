@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import apiClient from '@/lib/api';
-import { ApiError } from '@/types';
+import { loginErrorMessage } from '@/lib/errors';
 import Link from 'next/link';
 import { Sprout, AlertCircle } from 'lucide-react';
 import { Button } from '@/components';
@@ -34,18 +34,8 @@ export default function LoginPage() {
       // Pass remember flag so store picks the right storage
       setCredentials(response.data, rememberMe);
       router.push('/dashboard');
-    } catch (err: any) {
-      const data: ApiError = err.response?.data || {};
-      
-      if (err.response?.status === 429) {
-        setError('Too many requests. Please wait a few minutes and try again.');
-      } else {
-        setError(
-          data.detail ||
-            data.non_field_errors?.[0] ||
-            'Wrong email or password.'
-        );
-      }
+    } catch (err: unknown) {
+      setError(loginErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
