@@ -1,14 +1,16 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { useAuthStore } from '@/store/auth';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// All API calls go to this site's own /api/v1/... routes. A server-side proxy
+// (app/api/v1/[...path]/route.ts) forwards them to BACKEND_URL, so the backend
+// address never appears in the browser and cookies stay same-origin.
+const API_BASE_URL = '';
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true,
 });
 
 const refreshClient: AxiosInstance = axios.create({
@@ -16,7 +18,6 @@ const refreshClient: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true,
 });
 
 // ── Refresh token lock ──────────────────────────────────────────────
