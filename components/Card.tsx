@@ -8,27 +8,27 @@ export interface CardProps {
   onClick?: () => void;
 }
 
-const Card: React.FC<CardProps> = ({ 
-  children, 
-  className = '', 
+const Card: React.FC<CardProps> = ({
+  children,
+  className = '',
   hover = false,
   padding = 'md',
-  onClick
+  onClick,
 }) => {
   const paddingStyles = {
     none: '',
     sm: 'p-4',
-    md: 'p-6',
-    lg: 'p-8',
+    md: 'p-5 sm:p-6',
+    lg: 'p-6 sm:p-8',
   };
-  
-  const hoverStyles = hover 
-    ? 'transition-all hover:shadow-lg hover:border-primary-300' 
+
+  const hoverStyles = hover
+    ? 'transition duration-300 ease-apple hover:-translate-y-0.5 hover:shadow-float motion-reduce:transition-none motion-reduce:hover:translate-y-0'
     : '';
-  
+
   return (
-    <div 
-      className={`bg-white rounded-lg shadow-soft border border-neutral-200 ${paddingStyles[padding]} ${hoverStyles} ${className}`}
+    <div
+      className={`rounded-squircle bg-surface shadow-card ${paddingStyles[padding]} ${hoverStyles} ${className}`}
       onClick={onClick}
     >
       {children}

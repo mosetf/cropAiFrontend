@@ -12,3 +12,7 @@ export { default as Navbar } from './Navbar';
 
 export { default as PageHeader } from './PageHeader';
 export type { PageHeaderProps } from './PageHeader';
+
+export { default as Logo } from './Logo';
+export { default as RiskBadge } from './RiskBadge';
+export { Group, Row } from './Group';
