@@ -32,11 +32,11 @@ Requirements: Node.js 24.x (as declared in `package.json`; other recent versions
 git clone https://github.com/mosetf/cropAiFrontend.git
 cd cropAiFrontend
 npm ci
-echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
+echo "BACKEND_URL=http://localhost:8000" > .env.local
 npm run dev
 ```
 
-Open http://localhost:3000. You need the backend running at `NEXT_PUBLIC_API_URL` (default `http://localhost:8000`) for sign-up and predictions to work; the backend README explains how to start it.
+Open http://localhost:3000. You need the backend running at `BACKEND_URL` (default `http://localhost:8000` in development) for sign-up and predictions to work; the backend README explains how to start it.
 
 Other commands: `npm run build` (production build), `npm start` (serve the build).
 
@@ -44,13 +44,17 @@ Other commands: `npm run build` (production build), `npm start` (serve the build
 
 | Variable | Purpose |
 |---|---|
-| `NEXT_PUBLIC_API_URL` | Base URL of the backend API. Falls back to `http://localhost:8000` if unset. |
+| `BACKEND_URL` | Origin of the backend API (for example `https://api.example.com`; no path). Read only on the server, never sent to the browser. Required for production builds: the build fails with a clear message if it is missing or not `https://`. Defaults to `http://localhost:8000` in development. |
 
 `.env.production.example` shows the production variables. Do not commit real values.
 
+## How the front end reaches the backend
+
+The browser only calls this site's own `/api/v1/...` routes. A server-side proxy (`app/api/v1/[...path]/route.ts`) forwards them to `BACKEND_URL`, so the backend address never appears in the browser, no CORS is needed, and the login cookie belongs to the front end's own domain. Only `/api/v1/` is reachable through the proxy. It forwards an allow-list of headers, passes the client IP on as `X-Forwarded-For`, never follows backend redirects, and times out after 55 seconds (the route's `maxDuration` is 60).
+
 ## Deployment
 
-The front end is deployed on Vercel. Set `NEXT_PUBLIC_API_URL` in the Vercel project settings to the backend's public HTTPS URL; the backend must list the front end's origin in its `CORS_ALLOWED_ORIGINS`. A GitHub Actions workflow (`.github/workflows/build.yml`) checks that the project builds on every push and pull request; it does not deploy.
+The front end is deployed on Vercel. Set `BACKEND_URL` in the Vercel project settings (Production) to the backend's HTTPS origin and redeploy. It is a server-side variable, so do not give it a `NEXT_PUBLIC_` prefix. A GitHub Actions workflow (`.github/workflows/build.yml`) checks that the project builds on every push and pull request; it does not deploy.
 
 ## Project structure
 
